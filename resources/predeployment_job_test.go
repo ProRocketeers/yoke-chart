@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/ProRocketeers/yoke-chart/schema"
+	"github.com/google/go-cmp/cmp"
 	"github.com/jinzhu/copier"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	batchv1 "k8s.io/api/batch/v1"
@@ -104,21 +106,21 @@ func TestPreDeploymentJob(t *testing.T) {
 					}
 				},
 				Asserts: func(t *testing.T, j *batchv1.Job) {
-					assert.Contains(t, j.Spec.Template.Spec.Volumes, corev1.Volume{
+					partialContains(t, j.Spec.Template.Spec.Volumes, corev1.Volume{
 						Name: "secretVolume",
 						VolumeSource: corev1.VolumeSource{
 							Secret: &corev1.SecretVolumeSource{
 								SecretName:  "mySecret",
 								DefaultMode: ptr.To(int32(0444)),
-								Items:       []corev1.KeyToPath{},
+								Items:       nil,
 							},
 						},
-					})
-					assert.Contains(t, j.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+					}, cmp.Options{})
+					partialContains(t, j.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
 						Name:      "secretVolume",
 						MountPath: "/secret",
 						ReadOnly:  true,
-					})
+					}, cmp.Options{})
 				},
 			}
 		},
@@ -150,6 +152,22 @@ func TestPreDeploymentJob(t *testing.T) {
 
 					require.Contains(t, j.Spec.Template.Labels, "pod-label")
 					assert.Equal(t, "bar", j.Spec.Template.Labels["pod-label"])
+				},
+			}
+		},
+		"renders scrape labels if pod monitor is enabled": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.PreDeploymentJob.PodMonitor = &schema.PodMonitor{
+						Enabled:   ptr.To(true),
+						Endpoints: []monitoringv1.PodMetricsEndpoint{},
+					}
+				},
+				Asserts: func(t *testing.T, j *batchv1.Job) {
+					assert.Subset(t, j.Spec.Template.Labels, map[string]string{
+						"app":               "service--component--test--pre-deploy",
+						"prometheus-scrape": "true",
+					})
 				},
 			}
 		},
@@ -201,9 +219,8 @@ func TestPreDeploymentJob(t *testing.T) {
 			if err != nil {
 				t.Errorf("error during test setup: %v", err)
 			}
-			job := resources[0].(*batchv1.Job)
 
-			config.Asserts(t, job)
+			config.Asserts(t, fromUnstructuredOrPanic[*batchv1.Job](resources[0]))
 		})
 	}
 

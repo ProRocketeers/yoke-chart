@@ -3,14 +3,14 @@ package resources
 import (
 	"fmt"
 
-	"github.com/yokecd/yoke/pkg/flight"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func CreateService(values DeploymentValues) (bool, ResourceCreator) {
-	return true, func(values DeploymentValues) ([]flight.Resource, error) {
+	return true, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
 		service := corev1.Service{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: corev1.SchemeGroupVersion.Identifier(),
@@ -19,7 +19,13 @@ func CreateService(values DeploymentValues) (bool, ResourceCreator) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      serviceName(values.Metadata),
 				Namespace: values.Metadata.Namespace,
-				Labels:    commonLabels(values.Metadata),
+				Labels: func() map[string]string {
+					labels := commonLabels(values.Metadata)
+					if values.ServiceMonitor != nil && *values.ServiceMonitor.Enabled {
+						labels["prometheus-scrape"] = "true"
+					}
+					return labels
+				}(),
 			},
 			Spec: corev1.ServiceSpec{
 				Selector: map[string]string{
@@ -29,7 +35,11 @@ func CreateService(values DeploymentValues) (bool, ResourceCreator) {
 				Ports: getServicePorts(values),
 			},
 		}
-		return []flight.Resource{&service}, nil
+		u, err := toUnstructured(&service)
+		if err != nil {
+			return []unstructured.Unstructured{}, err
+		}
+		return u, nil
 	}
 }
 
@@ -55,7 +65,7 @@ func getServicePorts(values DeploymentValues) []corev1.ServicePort {
 			if port.Name != nil {
 				p.Name = *port.Name
 			}
-			if port.Expose == nil || *port.Expose == true {
+			if port.Expose == nil || *port.Expose {
 				ports = append(ports, p)
 			}
 		}

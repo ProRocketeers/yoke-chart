@@ -6,13 +6,13 @@ import (
 
 	"dario.cat/mergo"
 	postgres "github.com/ProRocketeers/yoke-chart/resources/postgresql"
-	"github.com/yokecd/yoke/pkg/flight"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
-	return values.DB != nil && *values.DB.Enabled == true, func(values DeploymentValues) ([]flight.Resource, error) {
+	return values.DB != nil && *values.DB.Enabled, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
 		db := values.DB
 
 		spec := postgres.PostgresSpec{
@@ -26,7 +26,7 @@ func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
 				StorageClass: db.StorageClass,
 			},
 			// false when `Backup` is nil, or the value is false
-			EnableLogicalBackup: db.Backup != nil && *db.Backup == true,
+			EnableLogicalBackup: db.Backup != nil && *db.Backup,
 			Databases:           db.Databases,
 			Users:               map[string]postgres.UserFlags{},
 			Resources: &postgres.Resources{
@@ -46,7 +46,7 @@ func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
 
 		if db.AdditionalConfig != nil {
 			if err := mergo.Merge(&spec, *db.AdditionalConfig, mergo.WithOverride); err != nil {
-				return []flight.Resource{}, fmt.Errorf("error while merging additional DB config: %v", err)
+				return []unstructured.Unstructured{}, fmt.Errorf("error while merging additional DB config: %v", err)
 			}
 		}
 
@@ -61,6 +61,10 @@ func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
 			},
 			Spec: spec,
 		}
-		return []flight.Resource{&postgres}, nil
+		u, err := toUnstructured(&postgres)
+		if err != nil {
+			return []unstructured.Unstructured{}, err
+		}
+		return u, nil
 	}
 }

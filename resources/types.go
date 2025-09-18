@@ -2,7 +2,6 @@ package resources
 
 import (
 	"github.com/ProRocketeers/yoke-chart/schema"
-	"github.com/yokecd/yoke/pkg/flight"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +30,7 @@ type DeploymentValues struct {
 	DB                  *schema.Database
 	Cronjobs            []Cronjob
 	ConfigMaps          map[string]map[string]string
+	ServiceMonitor      *schema.ServiceMonitor
 
 	Annotations    map[string]string
 	PodAnnotations map[string]string
@@ -52,19 +52,19 @@ type Metadata struct {
 }
 
 type Container struct {
-	Name           string
-	Image          Image
-	Args           []string
-	Command        []string
-	Ports          []schema.Port
-	Envs           map[string]string
-	EnvsRaw        []corev1.EnvVar
-	KubeSecrets    map[string]schema.SecretMapping
-	VaultSecrets   map[string]schema.SecretMapping
-	Resources      *corev1.ResourceRequirements
-	ReadinessProbe *corev1.Probe
-	LivenessProbe  *corev1.Probe
-	Lifecycle      *corev1.Lifecycle
+	Name            string
+	Image           Image
+	Args            []string
+	Command         []string
+	Ports           []schema.Port
+	Envs            map[string]string
+	EnvsRaw         []corev1.EnvVar
+	KubeSecrets     map[string]schema.SecretMapping
+	ExternalSecrets []schema.ExternalSecretDefinition
+	Resources       *corev1.ResourceRequirements
+	ReadinessProbe  *corev1.Probe
+	LivenessProbe   *corev1.Probe
+	Lifecycle       *corev1.Lifecycle
 }
 
 type Image struct {
@@ -83,17 +83,20 @@ type PreDeploymentJob struct {
 	PodAnnotations map[string]string
 	Labels         map[string]string
 	PodLabels      map[string]string
+	PodMonitor     *schema.PodMonitor
 
 	schema.JobSpec
 }
 
 type Cronjob struct {
-	Metadata           Metadata
-	Name               string
-	Schedule           string
-	Container          Container
-	InitContainers     []Container
-	Volumes            map[string]schema.Volume
+	Metadata       Metadata
+	Name           string
+	Schedule       string
+	Container      Container
+	InitContainers []Container
+	Volumes        map[string]schema.Volume
+	PodMonitor     *schema.PodMonitor
+
 	CronJobAnnotations map[string]string
 	CronJobLabels      map[string]string
 	JobAnnotations     map[string]string
@@ -182,4 +185,4 @@ func (v *Cronjob) GetPodValues() PodValues {
 	}
 }
 
-type ResourceCreator func(DeploymentValues) ([]flight.Resource, error)
+type ResourceCreator func(DeploymentValues) ([]unstructured.Unstructured, error)

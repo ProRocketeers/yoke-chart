@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"maps"
 
-	"github.com/yokecd/yoke/pkg/flight"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
-	return values.PreDeploymentJob != nil, func(values DeploymentValues) ([]flight.Resource, error) {
+	return values.PreDeploymentJob != nil, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
 		j := values.PreDeploymentJob
 		annotations := map[string]string{
 			"helm.sh/hook":        "pre-install, pre-upgrade",
@@ -21,7 +21,7 @@ func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
 
 		podSpec, err := createPodSpec(j, values)
 		if err != nil {
-			return []flight.Resource{}, fmt.Errorf("error creating pod for pre-deployment job: %v", err)
+			return []unstructured.Unstructured{}, fmt.Errorf("error creating pod for pre-deployment job: %v", err)
 		}
 		podSpec.RestartPolicy = corev1.RestartPolicyNever
 
@@ -40,7 +40,15 @@ func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: j.PodAnnotations,
-						Labels:      j.PodLabels,
+						Labels: func() map[string]string {
+							m := map[string]string{}
+							maps.Copy(m, j.PodLabels)
+							if j.PodMonitor != nil && *j.PodMonitor.Enabled {
+								m["app"] = preDeploymentJobName(j.Metadata)
+								m["prometheus-scrape"] = "true"
+							}
+							return m
+						}(),
 					},
 					Spec: podSpec,
 				},
@@ -56,6 +64,10 @@ func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
 				TTLSecondsAfterFinished: j.TTLSecondsAfterFinished,
 			},
 		}
-		return []flight.Resource{&job}, nil
+		u, err := toUnstructured(&job)
+		if err != nil {
+			return []unstructured.Unstructured{}, err
+		}
+		return u, nil
 	}
 }

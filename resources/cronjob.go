@@ -2,21 +2,22 @@ package resources
 
 import (
 	"fmt"
+	"maps"
 
-	"github.com/yokecd/yoke/pkg/flight"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.Cronjobs) > 0, func(values DeploymentValues) ([]flight.Resource, error) {
-		cronjobs := []flight.Resource{}
+	return len(values.Cronjobs) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+		resources := []unstructured.Unstructured{}
 
 		for _, c := range values.Cronjobs {
 			podSpec, err := createPodSpec(&c, values)
 			if err != nil {
-				return []flight.Resource{}, fmt.Errorf("error creating pod for cronjob '%v': %v", c.Name, err)
+				return []unstructured.Unstructured{}, fmt.Errorf("error creating pod for cronjob '%v': %v", c.Name, err)
 			}
 
 			podSpec.RestartPolicy = corev1.RestartPolicyOnFailure
@@ -27,7 +28,7 @@ func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
 					Kind:       "CronJob",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        fmt.Sprintf("%s--%s", c.Name, c.Metadata.Environment),
+					Name:        cronjobName(c),
 					Namespace:   c.Metadata.Namespace,
 					Labels:      withCommonLabels(c.CronJobLabels, c.Metadata),
 					Annotations: c.CronJobAnnotations,
@@ -42,7 +43,15 @@ func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
 							Template: corev1.PodTemplateSpec{
 								ObjectMeta: metav1.ObjectMeta{
 									Annotations: c.PodAnnotations,
-									Labels:      c.PodLabels,
+									Labels: func() map[string]string {
+										m := map[string]string{}
+										maps.Copy(m, c.PodLabels)
+										if c.PodMonitor != nil && *c.PodMonitor.Enabled {
+											m["app"] = cronjobName(c)
+											m["prometheus-scrape"] = "true"
+										}
+										return m
+									}(),
 								},
 								Spec: podSpec,
 							},
@@ -69,8 +78,12 @@ func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
 			if c.ConcurrencyPolicy != nil {
 				cronjob.Spec.ConcurrencyPolicy = *c.ConcurrencyPolicy
 			}
-			cronjobs = append(cronjobs, &cronjob)
+			u, err := toUnstructured(&cronjob)
+			if err != nil {
+				return []unstructured.Unstructured{}, err
+			}
+			resources = append(resources, u...)
 		}
-		return cronjobs, nil
+		return resources, nil
 	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ProRocketeers/yoke-chart/schema"
 	"github.com/jinzhu/copier"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -112,6 +113,22 @@ func TestService(t *testing.T) {
 				},
 			}
 		},
+		"renders scrape label if service monitor is enabled": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.ServiceMonitor = &schema.ServiceMonitor{
+						Enabled:   ptr.To(true),
+						Endpoints: []monitoringv1.Endpoint{},
+					}
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Subset(t, s.Labels, map[string]string{
+						"app":               "service--component--test",
+						"prometheus-scrape": "true",
+					})
+				},
+			}
+		},
 	}
 
 	base := DeploymentValues{
@@ -145,9 +162,8 @@ func TestService(t *testing.T) {
 			if err != nil {
 				t.Errorf("error during test setup: %v", err)
 			}
-			service := resources[0].(*corev1.Service)
 
-			config.Asserts(t, service)
+			config.Asserts(t, fromUnstructuredOrPanic[*corev1.Service](resources[0]))
 		})
 	}
 }

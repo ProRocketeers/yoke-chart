@@ -7,15 +7,15 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yokecd/yoke/pkg/flight"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func TestRBAC(t *testing.T) {
 	type CaseConfig struct {
 		ValuesTransform func(*DeploymentValues)
-		Asserts         func(*testing.T, []flight.Resource)
+		Asserts         func(*testing.T, []unstructured.Unstructured)
 	}
 
 	cases := map[string]func() CaseConfig{
@@ -34,18 +34,16 @@ func TestRBAC(t *testing.T) {
 						},
 					}
 				},
-				Asserts: func(t *testing.T, r []flight.Resource) {
+				Asserts: func(t *testing.T, r []unstructured.Unstructured) {
 					require.Len(t, r, 2)
 
 					roleName := "service--component--test--role"
 					roleBindingName := "service--component--test--role-binding"
 
-					role, ok := findResource[*rbacv1.Role](r, "Role", roleName)
-					require.Truef(t, ok, "role %v not found", roleName)
+					role := findResourceOrFail[*rbacv1.Role](t, r, "Role", roleName)
 					assert.Contains(t, role.Rules, rule)
 
-					roleBinding, ok := findResource[*rbacv1.RoleBinding](r, "RoleBinding", roleBindingName)
-					require.Truef(t, ok, "role binding %v not found", roleBindingName)
+					roleBinding := findResourceOrFail[*rbacv1.RoleBinding](t, r, "RoleBinding", roleBindingName)
 
 					assert.Equal(t, "service--component--test", roleBinding.Subjects[0].Name)
 					assert.Equal(t, roleName, roleBinding.RoleRef.Name)
@@ -67,18 +65,16 @@ func TestRBAC(t *testing.T) {
 						},
 					}
 				},
-				Asserts: func(t *testing.T, r []flight.Resource) {
+				Asserts: func(t *testing.T, r []unstructured.Unstructured) {
 					require.Len(t, r, 2)
 
 					roleName := "service--component--test--cluster-role"
 					roleBindingName := "service--component--test--cluster-role-binding"
 
-					role, ok := findResource[*rbacv1.ClusterRole](r, "ClusterRole", roleName)
-					require.Truef(t, ok, "cluster role %v not found", roleName)
+					role := findResourceOrFail[*rbacv1.ClusterRole](t, r, "ClusterRole", roleName)
 					assert.Contains(t, role.Rules, rule)
 
-					roleBinding, ok := findResource[*rbacv1.ClusterRoleBinding](r, "ClusterRoleBinding", roleBindingName)
-					require.Truef(t, ok, "cluster role binding %v not found", roleBindingName)
+					roleBinding := findResourceOrFail[*rbacv1.ClusterRoleBinding](t, r, "ClusterRoleBinding", roleBindingName)
 
 					assert.Equal(t, "service--component--test", roleBinding.Subjects[0].Name)
 					assert.Equal(t, roleName, roleBinding.RoleRef.Name)
@@ -102,13 +98,11 @@ func TestRBAC(t *testing.T) {
 						},
 					}
 				},
-				Asserts: func(t *testing.T, r []flight.Resource) {
+				Asserts: func(t *testing.T, r []unstructured.Unstructured) {
 					require.Len(t, r, 2)
 
-					_, ok := findResource[*rbacv1.ClusterRole](r, "ClusterRole", name)
-					require.Truef(t, ok, "cluster role %v not found", name)
-					_, ok = findResource[*rbacv1.ClusterRoleBinding](r, "ClusterRoleBinding", name)
-					require.Truef(t, ok, "cluster role binding %v not found", name)
+					findResourceOrFail[*rbacv1.ClusterRole](t, r, "ClusterRole", name)
+					findResourceOrFail[*rbacv1.ClusterRoleBinding](t, r, "ClusterRoleBinding", name)
 				},
 			}
 		},

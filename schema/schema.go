@@ -17,7 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	postgres "github.com/ProRocketeers/yoke-chart/resources/postgresql"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	yaml "github.com/goccy/go-yaml"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 type InputValues struct {
@@ -38,6 +40,7 @@ type InputValues struct {
 	DB                  *Database                         `json:"db,omitempty"`
 	Cronjobs            []Cronjob                         `json:"cronjobs,omitempty" validate:"dive"`
 	ConfigMaps          map[string]map[string]string      `json:"configMaps"`
+	ServiceMonitor      *ServiceMonitor                   `json:"serviceMonitor"`
 
 	Annotations    map[string]string `json:"annotations,omitempty"`
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
@@ -84,25 +87,39 @@ type Metadata struct {
 type Container struct {
 	Image Image `json:"image" validate:"required"`
 
-	Args           []string                     `json:"args,omitempty"`
-	Command        []string                     `json:"command,omitempty"`
-	Ports          []Port                       `json:"ports" validate:"dive"`
-	Envs           map[string]string            `json:"envs,omitempty"`
-	EnvsRaw        []corev1.EnvVar              `json:"envsRaw,omitempty" validate:"dive"`
-	KubeSecrets    map[string]SecretMapping     `json:"kubeSecrets,omitempty" validate:"dive"`
-	VaultSecrets   map[string]SecretMapping     `json:"vaultSecrets,omitempty" validate:"dive"`
-	Resources      *corev1.ResourceRequirements `json:"resources,omitempty"`
-	ReadinessProbe *corev1.Probe                `json:"readinessProbe,omitempty"`
-	LivenessProbe  *corev1.Probe                `json:"livenessProbe,omitempty"`
-	Lifecycle      *corev1.Lifecycle            `json:"lifecycle,omitempty"`
+	Args            []string                     `json:"args,omitempty"`
+	Command         []string                     `json:"command,omitempty"`
+	Ports           []Port                       `json:"ports" validate:"dive"`
+	Envs            map[string]string            `json:"envs,omitempty"`
+	EnvsRaw         []corev1.EnvVar              `json:"envsRaw,omitempty" validate:"dive"`
+	KubeSecrets     map[string]SecretMapping     `json:"kubeSecrets,omitempty" validate:"dive"`
+	ExternalSecrets []ExternalSecretDefinition   `json:"externalSecrets,omitempty" validate:"dive"`
+	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
+	ReadinessProbe  *corev1.Probe                `json:"readinessProbe,omitempty"`
+	LivenessProbe   *corev1.Probe                `json:"livenessProbe,omitempty"`
+	Lifecycle       *corev1.Lifecycle            `json:"lifecycle,omitempty"`
 }
 
 type SecretMapping = map[string]*string
+
+type ExternalSecretDefinition struct {
+	SecretStore     es.SecretStoreRef        `json:"secretStore" validate:"required"`
+	RefreshInterval *metav1.Duration         `json:"refreshInterval"`
+	Mapping         map[string]SecretMapping `json:"mapping" validate:"min=1,dive"`
+}
 
 type InitContainer struct {
 	Container `json:",inline"`
 
 	Name string `json:"name" validate:"required"`
+}
+
+type Ingress struct {
+	Enabled     *bool             `json:"enabled" validate:"required"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+
+	networkingv1.IngressSpec `json:",inline"`
 }
 
 type PreDeploymentJob struct {
@@ -115,6 +132,7 @@ type PreDeploymentJob struct {
 	PodAnnotations    map[string]string `json:"podAnnotations,omitempty"`
 	Labels            map[string]string `json:"labels,omitempty"`
 	PodLabels         map[string]string `json:"podLabels,omitempty"`
+	PodMonitor        *PodMonitor       `json:"podMonitor"`
 
 	JobSpec `json:",inline"`
 }
@@ -165,6 +183,7 @@ type Cronjob struct {
 	MainContainerName *string           `json:"mainContainerName,omitempty"`
 	InitContainers    []InitContainer   `json:"initContainers,omitempty" validate:"dive"`
 	Volumes           map[string]Volume `json:"volumes,omitempty" validate:"dive"`
+	PodMonitor        *PodMonitor       `json:"podMonitor"`
 
 	CronJobAnnotations map[string]string `json:"cronJobAnnotations,omitempty"`
 	CronJobLabels      map[string]string `json:"cronJobLabels,omitempty"`
@@ -191,69 +210,17 @@ type Cronjob struct {
 	TTLSecondsAfterFinished *int32                    `json:"ttlSecondsAfterFinished,omitempty"`
 }
 
+type ServiceMonitor struct {
+	Enabled   *bool                   `json:"enabled" validate:"required"`
+	Endpoints []monitoringv1.Endpoint `json:"endpoints" validate:"required,min=1"`
+}
+
+type PodMonitor struct {
+	Enabled   *bool                             `json:"enabled" validate:"required"`
+	Endpoints []monitoringv1.PodMetricsEndpoint `json:"endpoints" validate:"required,min=1"`
+}
+
 // ------------ discriminated unions handling
-// ------------ ingress
-type Ingress struct {
-	Enabled  *bool             `json:"enabled" validate:"required"`
-	Homepage map[string]string `json:"homepage,omitempty"`
-	Simple   *bool             `json:"simple,omitempty"`
-
-	// `-` tag just to make sure it doesn't get parsed from anything
-	Variant IngressVariant `json:"-"`
-}
-
-// Go doesn't have a type union, like `SimpleIngress | FullIngress`
-// but while putting `interface{}` or `any` works, you could assign anything to that field even if it doesn't make sense
-// putting an interface "marks" the struct as being allowed to be used in the field
-type IngressVariant interface{ IsIngressVariant() }
-
-type SimpleIngress struct {
-	Host string `json:"host" validate:"required"`
-}
-
-// the function can be a noop and not do anything, it just has to be implemented
-// since Go doesn't have any `implements` keyword, and is duck typed instead
-func (SimpleIngress) IsIngressVariant() {}
-
-type FullIngress struct {
-	Annotations              map[string]string `json:"annotations,omitempty"`
-	networkingv1.IngressSpec `json:",inline"`
-}
-
-func (FullIngress) IsIngressVariant() {}
-
-// YAML package uses reflection to look for this interface on the given types and use these instead of the default behavior
-func (i *Ingress) UnmarshalYAML(unmarshal func(any) error) error {
-	// `i` is not unmarshaled at this point yet, just created with zero values
-
-	// type alias => identical in structure but doesn't copy methods => doesn't lead to recursion
-	type alias Ingress
-	var a alias
-
-	if err := unmarshal(&a); err != nil {
-		return err
-	}
-
-	// initialize the fields from `a` which copies the parsed fields
-	*i = Ingress(a)
-
-	if i.Simple == nil || *i.Simple == true {
-		var v SimpleIngress
-		if err := unmarshal(&v); err != nil {
-			return err
-		}
-		i.Variant = v
-	} else {
-		var v FullIngress
-		if err := unmarshal(&v); err != nil {
-			return err
-		}
-		i.Variant = v
-	}
-
-	return nil
-}
-
 // ------------ volumes
 type VolumeType string
 
@@ -278,7 +245,14 @@ type VolumeMount struct {
 	VolumePath    *string `json:"volumePath,omitempty"`
 }
 
-type VolumeVariant interface{ IsVolumeVariant() }
+// Go doesn't have a type union, like `StandardVolume | RawVolume | ...`
+// but while putting `interface{}` or `any` works, you could assign anything to that field even if it doesn't make sense
+// putting an interface "marks" the struct as being allowed to be used in the field
+type VolumeVariant interface {
+	// the function can be a noop and not do anything, it just has to be implemented
+	// since Go doesn't have any `implements` keyword, and is duck typed instead
+	IsVolumeVariant()
+}
 
 type StandardVolume struct {
 	// type: `tmpfs` or `local`
@@ -341,7 +315,11 @@ type ConfigMapVolume struct {
 
 func (ConfigMapVolume) IsVolumeVariant() {}
 
+// YAML package uses reflection to look for this interface on the given types and use these instead of the default behavior
 func (v *Volume) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// `v` is not unmarshaled at this point yet, just created with zero values
+
+	// type alias => identical in structure but doesn't copy methods => doesn't lead to recursion
 	type alias Volume
 	var a alias
 
@@ -349,6 +327,7 @@ func (v *Volume) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
+	// initialize the fields from `a` which copies the parsed fields
 	*v = Volume(a)
 
 	switch v.Type {
@@ -375,7 +354,7 @@ func (v *Volume) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if persistentVariant.Existing == nil {
 			return fmt.Errorf("persistent volume missing 'existing' field")
 		}
-		if *persistentVariant.Existing == true {
+		if *persistentVariant.Existing {
 			var variant PersistentVolumeExisting
 			if err := unmarshal(&variant); err != nil {
 				return err

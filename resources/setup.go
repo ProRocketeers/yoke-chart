@@ -29,6 +29,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		Affinity:            input.Affinity,
 		ConfigMaps:          input.ConfigMaps,
 		ExtraManifests:      []unstructured.Unstructured{},
+		ServiceMonitor:      input.ServiceMonitor,
 
 		Metadata: Metadata{
 			Namespace:   input.Metadata.Namespace,
@@ -109,7 +110,7 @@ func getInitContainers(input schema.InputValues) ([]Container, error) {
 
 func validateAndSetSideContainerImage(targetImage, mainImage *schema.Image) error {
 	imageTagIsEmpty := targetImage.Tag == nil || strings.TrimSpace(*mainImage.Tag) == ""
-	inheritTag := targetImage.InheritMainContainerTag != nil && *targetImage.InheritMainContainerTag == true
+	inheritTag := targetImage.InheritMainContainerTag != nil && *targetImage.InheritMainContainerTag
 	if !inheritTag && imageTagIsEmpty {
 		return fmt.Errorf("side container must have either `image.tag` set or `image.inheritMainContainerTag: true`")
 	}
@@ -132,6 +133,7 @@ func getPreDeploymentJob(input schema.InputValues) (PreDeploymentJob, error) {
 			Component:   input.Metadata.Component,
 			Environment: input.Metadata.Environment,
 		},
+		PodMonitor:     input.PreDeploymentJob.PodMonitor,
 		Volumes:        input.PreDeploymentJob.Volumes,
 		Annotations:    input.PreDeploymentJob.Annotations,
 		Labels:         input.PreDeploymentJob.Labels,
@@ -167,9 +169,10 @@ func getCronjobs(input schema.InputValues) ([]Cronjob, error) {
 				Component:   input.Metadata.Component,
 				Environment: input.Metadata.Environment,
 			},
-			Name:     input.Cronjobs[i].Name,
-			Schedule: input.Cronjobs[i].Schedule,
-			Volumes:  input.Cronjobs[i].Volumes,
+			Name:       input.Cronjobs[i].Name,
+			Schedule:   input.Cronjobs[i].Schedule,
+			Volumes:    input.Cronjobs[i].Volumes,
+			PodMonitor: input.Cronjobs[i].PodMonitor,
 
 			CronJobAnnotations: input.Cronjobs[i].CronJobAnnotations,
 			CronJobLabels:      input.Cronjobs[i].CronJobLabels,
@@ -229,16 +232,16 @@ func convertContainer(container schema.Container, names ...*string) Container {
 			PullPolicy:  container.Image.PullPolicy,
 			PullSecrets: container.Image.PullSecrets,
 		},
-		Args:           container.Args,
-		Command:        container.Command,
-		Ports:          container.Ports,
-		Envs:           container.Envs,
-		EnvsRaw:        container.EnvsRaw,
-		KubeSecrets:    container.KubeSecrets,
-		VaultSecrets:   container.VaultSecrets,
-		Resources:      container.Resources,
-		ReadinessProbe: container.ReadinessProbe,
-		LivenessProbe:  container.LivenessProbe,
-		Lifecycle:      container.Lifecycle,
+		Args:            container.Args,
+		Command:         container.Command,
+		Ports:           container.Ports,
+		Envs:            container.Envs,
+		EnvsRaw:         container.EnvsRaw,
+		KubeSecrets:     container.KubeSecrets,
+		ExternalSecrets: container.ExternalSecrets,
+		Resources:       container.Resources,
+		ReadinessProbe:  container.ReadinessProbe,
+		LivenessProbe:   container.LivenessProbe,
+		Lifecycle:       container.Lifecycle,
 	}
 }

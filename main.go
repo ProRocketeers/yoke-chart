@@ -11,7 +11,9 @@ import (
 	"github.com/ProRocketeers/yoke-chart/schema"
 	"github.com/go-playground/validator/v10"
 	yaml "github.com/goccy/go-yaml"
-	"github.com/yokecd/yoke/pkg/flight"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 func main() {
@@ -52,7 +54,7 @@ func run() error {
 		return fmt.Errorf("error while preparing the deployment values: %v", err)
 	}
 
-	res, err := collectResources(
+	resources, err := collectResources(
 		deploymentValues,
 		resources.CreateDeployment,
 		resources.CreateService,
@@ -68,20 +70,36 @@ func run() error {
 		resources.CreateRBAC,
 		resources.CreateConfigMaps,
 		resources.CreateExtraManifests,
+		resources.CreatePrometheusMonitors,
 	)
+
 	if err != nil {
-		return fmt.Errorf("error while rendering the resources: %v", err)
+		return fmt.Errorf("error while rendering resources: %v", err)
 	}
 
-	return json.NewEncoder(os.Stdout).Encode(res)
+	jsons := []json.RawMessage{}
+	// return json.NewEncoder(os.Stdout).Encode(res)
+	encoder := k8sjson.NewSerializerWithOptions(
+		k8sjson.DefaultMetaFactory, nil, nil, k8sjson.SerializerOptions{Yaml: false, Strict: true},
+	)
+	for _, r := range resources {
+		bytes, err := runtime.Encode(encoder, &r)
+		if err != nil {
+			return fmt.Errorf("error while serializing resources: %v", err)
+		}
+		jsons = append(jsons, bytes)
+	}
+
+	json.NewEncoder(os.Stdout).Encode(jsons)
+	return nil
 }
 
-func collectResources(values resources.DeploymentValues, creators ...func(resources.DeploymentValues) (bool, resources.ResourceCreator)) ([]flight.Resource, error) {
-	resources := []flight.Resource{}
+func collectResources(values resources.DeploymentValues, creators ...func(resources.DeploymentValues) (bool, resources.ResourceCreator)) ([]unstructured.Unstructured, error) {
+	resources := []unstructured.Unstructured{}
 	for _, shouldCreateResource := range creators {
 		if ok, create := shouldCreateResource(values); ok {
 			if newResources, err := create(values); err != nil {
-				return []flight.Resource{}, err
+				return []unstructured.Unstructured{}, err
 			} else {
 				resources = append(resources, newResources...)
 			}

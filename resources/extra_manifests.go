@@ -1,13 +1,9 @@
 package resources
 
-import "github.com/yokecd/yoke/pkg/flight"
+import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 func CreateExtraManifests(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.ExtraManifests) > 0, func(values DeploymentValues) ([]flight.Resource, error) {
-		resources := []flight.Resource{}
-		for _, m := range values.ExtraManifests {
-			resources = append(resources, &m)
-		}
-		return resources, nil
+	return len(values.ExtraManifests) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+		return values.ExtraManifests, nil
 	}
 }

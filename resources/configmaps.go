@@ -3,14 +3,14 @@ package resources
 import (
 	"fmt"
 
-	"github.com/yokecd/yoke/pkg/flight"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateConfigMaps(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.ConfigMaps) > 0, func(values DeploymentValues) ([]flight.Resource, error) {
-		resources := []flight.Resource{}
+	return len(values.ConfigMaps) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+		resources := []unstructured.Unstructured{}
 		for name, contents := range values.ConfigMaps {
 			cm := corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
@@ -24,7 +24,11 @@ func CreateConfigMaps(values DeploymentValues) (bool, ResourceCreator) {
 				},
 				Data: contents,
 			}
-			resources = append(resources, &cm)
+			u, err := toUnstructured(&cm)
+			if err != nil {
+				return []unstructured.Unstructured{}, err
+			}
+			resources = append(resources, u...)
 		}
 		return resources, nil
 	}

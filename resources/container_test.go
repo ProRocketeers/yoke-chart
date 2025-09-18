@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/ProRocketeers/yoke-chart/schema"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/google/go-cmp/cmp"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -119,9 +121,17 @@ func TestContainer(t *testing.T) {
 		"renders export from Vault secrets": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.Containers[0].VaultSecrets = map[string]schema.SecretMapping{
-						"path/to/secret": {
-							"MY_ENV": ptr.To("MY-SECRET"),
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": {
+									"MY_ENV": ptr.To("MY-SECRET"),
+								},
+							},
 						},
 					}
 				},
@@ -151,7 +161,7 @@ func TestContainer(t *testing.T) {
 					dv.Containers[0].EnvsRaw = []corev1.EnvVar{env}
 				},
 				Asserts: func(t *testing.T, d *appsv1.Deployment) {
-					assert.Equal(t, env, d.Spec.Template.Spec.Containers[0].Env[0])
+					partialEqual(t, env, d.Spec.Template.Spec.Containers[0].Env[0], cmp.Options{})
 				},
 			}
 		},
@@ -334,7 +344,7 @@ func TestContainer(t *testing.T) {
 			if err != nil {
 				t.Errorf("errpr during test setup: %v", err)
 			}
-			deployment := resources[0].(*appsv1.Deployment)
+			deployment := fromUnstructuredOrPanic[*appsv1.Deployment](resources[0])
 
 			config.Asserts(t, deployment)
 		})

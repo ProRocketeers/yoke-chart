@@ -22,10 +22,18 @@ func TestExternalSecrets(t *testing.T) {
 		"renders basic external secret mapping": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.Containers[0].VaultSecrets = map[string]schema.SecretMapping{
-						"path/to/secret": {
-							"MY_ENV":       ptr.To("MY-SECRET"),
-							"MY_OTHER_ENV": nil,
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": {
+									"MY_ENV":       ptr.To("MY-SECRET"),
+									"MY_OTHER_ENV": nil,
+								},
+							},
 						},
 					}
 				},
@@ -33,7 +41,8 @@ func TestExternalSecrets(t *testing.T) {
 					require.Len(t, secrets, 1)
 
 					assert.Equal(t, "service--component--test--vault--path-to-secret", secrets[0].Name)
-					assert.Equal(t, "vault-test", secrets[0].Spec.SecretStoreRef.Name)
+					assert.Equal(t, "vault", secrets[0].Spec.SecretStoreRef.Name)
+					assert.Equal(t, "ClusterSecretStore", secrets[0].Spec.SecretStoreRef.Kind)
 					require.Len(t, secrets[0].Spec.Data, 2)
 
 					assert.Contains(t, secrets[0].Spec.Data, es.ExternalSecretData{
@@ -68,14 +77,23 @@ func TestExternalSecrets(t *testing.T) {
 		"properly renders full secret mapping": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.Containers[0].VaultSecrets = map[string]schema.SecretMapping{
-						"path/to/secret": nil,
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": nil,
+							},
+						},
 					}
 				},
 				Asserts: func(t *testing.T, secrets []*es.ExternalSecret) {
 					require.Len(t, secrets, 1)
 
-					assert.Equal(t, "vault-test", secrets[0].Spec.SecretStoreRef.Name)
+					assert.Equal(t, "vault", secrets[0].Spec.SecretStoreRef.Name)
+					assert.Equal(t, "ClusterSecretStore", secrets[0].Spec.SecretStoreRef.Kind)
 
 					require.Len(t, secrets[0].Spec.DataFrom, 1)
 					assert.Equal(t, "path/to/secret", secrets[0].Spec.DataFrom[0].Extract.Key)
@@ -85,12 +103,20 @@ func TestExternalSecrets(t *testing.T) {
 		"properly renders multiple external secrets ": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.Containers[0].VaultSecrets = map[string]schema.SecretMapping{
-						"path/to/secret": {
-							"MY_ENV": ptr.To("MY-SECRET"),
-						},
-						"path/to/other/secret": {
-							"MY_OTHER_ENV": ptr.To("THEIR-SECRET"),
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": {
+									"MY_ENV": ptr.To("MY-SECRET"),
+								},
+								"path/to/other/secret": {
+									"MY_OTHER_ENV": ptr.To("THEIR-SECRET"),
+								},
+							},
 						},
 					}
 				},
@@ -102,6 +128,45 @@ func TestExternalSecrets(t *testing.T) {
 
 					assert.True(t, firstSecretI >= 0, "secret for path/to/secret not found")
 					assert.True(t, secondSecretI >= 0, "secret for path/to/other/secret not found")
+				},
+			}
+		},
+		"properly renders secrets from multiple stores": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "SecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": {
+									"MY_ENV": ptr.To("MY-SECRET"),
+								},
+							},
+						},
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault-general",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": {
+									"MY_ENV": ptr.To("MY-SECRET"),
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, secrets []*es.ExternalSecret) {
+					require.Len(t, secrets, 2)
+
+					firstSecretI := findSecretIndexByName(secrets, "service--component--test--vault--path-to-secret")
+					secondSecretI := findSecretIndexByName(secrets, "service--component--test--vault-general--path-to-secret")
+
+					assert.True(t, firstSecretI >= 0, "secret in store vault not found")
+					assert.True(t, secondSecretI >= 0, "secret in store vault-general not found")
 				},
 			}
 		},
@@ -141,28 +206,29 @@ func TestExternalSecrets(t *testing.T) {
 			if err != nil {
 				t.Errorf("error during test setup: %v", err)
 			}
-			secrets := []*es.ExternalSecret{}
-			for i := range resources {
-				if s, ok := resources[i].(*es.ExternalSecret); ok {
-					secrets = append(secrets, s)
-				} else {
-					t.Error("error while retyping external secrets in test setup")
-				}
-			}
-			config.Asserts(t, secrets)
+
+			config.Asserts(t, fromUnstructuredArrayOrPanic[*es.ExternalSecret](resources))
 		})
 	}
 
-	t.Run("returns error when there are multiple mappings from the same path", func(t *testing.T) {
+	t.Run("returns error when there are multiple mappings from the same store and path", func(t *testing.T) {
 		values := DeploymentValues{}
 		copier.CopyWithOption(&values, &base, copier.Option{DeepCopy: true})
 
-		values.Containers[0].VaultSecrets = map[string]schema.SecretMapping{
-			"path/to/secret": {
-				"MY_ENV": ptr.To("MY-SECRET"),
-			},
-			"path/to/other/secret": {
-				"MY_OTHER_ENV": ptr.To("THEIR-SECRET"),
+		values.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+			{
+				SecretStore: es.SecretStoreRef{
+					Name: "vault",
+					Kind: "ClusterSecretStore",
+				},
+				Mapping: map[string]schema.SecretMapping{
+					"path/to/secret": {
+						"MY_ENV": ptr.To("MY-SECRET"),
+					},
+					"path/to/other/secret": {
+						"MY_OTHER_ENV": ptr.To("THEIR-SECRET"),
+					},
+				},
 			},
 		}
 		values.InitContainers = []Container{
@@ -172,9 +238,17 @@ func TestExternalSecrets(t *testing.T) {
 					Repository: "image_repository",
 					Tag:        ptr.To("image_tag"),
 				},
-				VaultSecrets: map[string]schema.SecretMapping{
-					"path/to/secret": {
-						"MY_ENV": ptr.To("MY-SECRET"),
+				ExternalSecrets: []schema.ExternalSecretDefinition{
+					{
+						SecretStore: es.SecretStoreRef{
+							Name: "vault",
+							Kind: "ClusterSecretStore",
+						},
+						Mapping: map[string]schema.SecretMapping{
+							"path/to/secret": {
+								"MY_ENV": ptr.To("MY-SECRET"),
+							},
+						},
 					},
 				},
 			},

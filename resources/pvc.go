@@ -4,16 +4,16 @@ import (
 	"iter"
 
 	"github.com/ProRocketeers/yoke-chart/schema"
-	"github.com/yokecd/yoke/pkg/flight"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func CreatePVCs(values DeploymentValues) (bool, ResourceCreator) {
-	return hasAnyPVC(values), func(values DeploymentValues) ([]flight.Resource, error) {
-		resources := []flight.Resource{}
+	return hasAnyPVC(values), func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+		resources := []unstructured.Unstructured{}
 		for volumeName, volume := range newPersistentVolumes(values) {
 			v := volume.Variant.(schema.PersistentVolume).Variant.(schema.PersistentVolumeNew)
 			// already validated during unmarshaling, ignoring error
@@ -48,7 +48,11 @@ func CreatePVCs(values DeploymentValues) (bool, ResourceCreator) {
 				pvc.Spec.VolumeMode = v.VolumeMode
 			}
 
-			resources = append(resources, &pvc)
+			u, err := toUnstructured(&pvc)
+			if err != nil {
+				return []unstructured.Unstructured{}, err
+			}
+			resources = append(resources, u...)
 		}
 		return resources, nil
 	}
@@ -68,7 +72,7 @@ func hasAnyPVC(values DeploymentValues) bool {
 func shouldCreatePVC(volume schema.Volume) bool {
 	if volume.Type == schema.VolumeTypePersistent {
 		v := volume.Variant.(schema.PersistentVolume)
-		if *v.Existing == false {
+		if !*v.Existing {
 			return true
 		}
 	}

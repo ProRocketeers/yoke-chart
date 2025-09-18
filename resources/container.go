@@ -72,14 +72,16 @@ func getEnvs(c Container, metadata Metadata) ([]corev1.EnvVar, []corev1.EnvFromS
 			}
 		}
 	}
-	for secretPath := range sortedMap(c.VaultSecrets) {
-		envsFrom = append(envsFrom, corev1.EnvFromSource{
-			SecretRef: &corev1.SecretEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: vaultSecretName(secretPath, metadata),
+	for _, definition := range c.ExternalSecrets {
+		for secretPath := range sortedMap(definition.Mapping) {
+			envsFrom = append(envsFrom, corev1.EnvFromSource{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secretName(secretPath, definition.SecretStore.Name, metadata),
+					},
 				},
-			},
-		})
+			})
+		}
 	}
 	envs = append(envs, c.EnvsRaw...)
 	return envs, envsFrom

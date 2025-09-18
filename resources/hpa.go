@@ -3,17 +3,17 @@ package resources
 import (
 	"fmt"
 
-	"github.com/yokecd/yoke/pkg/flight"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateHPA(values DeploymentValues) (bool, ResourceCreator) {
-	return values.Autoscaling != nil, func(values DeploymentValues) ([]flight.Resource, error) {
+	return values.Autoscaling != nil, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
 		a := values.Autoscaling
 		if a.MinReplicas != nil && *a.MinReplicas > a.MaxReplicas {
-			return []flight.Resource{}, fmt.Errorf("autoscaling 'maxReplicas' cannot be lower than 'minReplicas' (or 1 by default)")
+			return []unstructured.Unstructured{}, fmt.Errorf("autoscaling 'maxReplicas' cannot be lower than 'minReplicas' (or 1 by default)")
 		}
 		hpa := autoscalingv2.HorizontalPodAutoscaler{
 			TypeMeta: metav1.TypeMeta{
@@ -37,6 +37,10 @@ func CreateHPA(values DeploymentValues) (bool, ResourceCreator) {
 				Behavior:    a.Behavior,
 			},
 		}
-		return []flight.Resource{&hpa}, nil
+		u, err := toUnstructured(&hpa)
+		if err != nil {
+			return []unstructured.Unstructured{}, err
+		}
+		return u, nil
 	}
 }

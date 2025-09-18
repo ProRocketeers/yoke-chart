@@ -14,10 +14,9 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
-## [1.0.0] - 2025-09-18
+## [1.0.0] - 2025-09-19
 
 ### :star: Moved the project to public GitHub repository! :rocket:
-
 
 [unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.0.0...HEAD
 [1.0.0]: https://github.com/ProRocketeers/yoke-chart/tree/1.0.0

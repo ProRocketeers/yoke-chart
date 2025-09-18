@@ -138,7 +138,7 @@ func TestDB(t *testing.T) {
 			if err != nil {
 				t.Errorf("error during test setup: %v", err)
 			}
-			db := resources[0].(*postgresql.Postgresql)
+			db := fromUnstructuredOrPanic[*postgresql.Postgresql](resources[0])
 
 			config.Asserts(t, db)
 		})

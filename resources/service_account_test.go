@@ -30,7 +30,7 @@ func TestServiceAccount(t *testing.T) {
 		resources, err := createFn(values)
 		require.NoError(t, err)
 
-		sa := resources[0].(*corev1.ServiceAccount)
+		sa := fromUnstructuredOrPanic[*corev1.ServiceAccount](resources[0])
 
 		// `assert` package = failed assert => marks test as failed but continues
 		assert.Equal(t, serviceName(values.Metadata), sa.Name)
@@ -49,8 +49,9 @@ func TestServiceAccount(t *testing.T) {
 		}
 
 		_, create := CreateServiceAccount(values)
-		resourrces, _ := create(values)
-		sa := resourrces[0].(*corev1.ServiceAccount)
+		resources, _ := create(values)
+
+		sa := fromUnstructuredOrPanic[*corev1.ServiceAccount](resources[0])
 
 		assert.Equal(t, expected, sa.Annotations)
 	})

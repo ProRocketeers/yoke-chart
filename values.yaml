@@ -74,16 +74,22 @@ kubeSecrets:
   # If the value is omitted, all keys from the secret are loaded (env variable name is the same as the secret key)
   secretNameTwo: null
 
-# `vaultSecrets` - mapping of Vault Secrets to environment variables
-vaultSecrets:
-  # Path to the secret in Vault - prefix `secret/` is omitted
-  path/to/secret:
-    # Key-value pair of environment variable name to key in the Vault secret
-    MY_SECRET_ENV: key_in_secret
-    # If the key is omitted, same name as the env var is assumed
-    MY_OTHER_SECRET: null
-  # If the mapping vlaue is omitted, all keys from the secret are loaded with the same name
-  path/to/another/secret: null
+# `externalSecrets` - mapping of external secrets via ExternalSecrets Operator to environment variables
+externalSecrets:
+  - secretStore:
+      name: my-store
+      kind: ClusterSecretStore
+    # refresh interval of the created ExternalSecret. OPTIONAL - defaults to 1 minute
+    refreshInterval: 1m
+    mapping:
+      # Path to the secret - prefix `secret/` is omitted
+      path/to/secret:
+        # Key-value pair of environment variable name to key in the provider
+        MY_SECRET_ENV: key_in_secret
+        # If the key is omitted, same name as the env var is assumed
+        MY_OTHER_SECRET: null
+      # If the mapping value is omitted, all keys from the secret are loaded with the same name
+      path/to/another/secret: null
 
 # `resources` - specification of minimum/maximum resources a Pod can get. OPTIONAL
 # uses Kubernetes specification
@@ -200,41 +206,8 @@ initContainers:
 ingress:
   # `ingress.enabled` - OPTIONAL - default `false`
   enabled: true
-  # `ingress.homepage` - if specified, emits additional annotations for Homepage configuration
-  # these are taken verbatim as-is, just prefixed with `gethomepage.dev/`
-  homepage:
-    # examples, for full docs, see https://gethomepage.dev/configs/services and https://gethomepage.dev/configs/kubernetes/#automatic-service-discovery
-    enabled: "true"
-    href: https://something.k8s.prorocketeers.com
-    description: Something
-    group: My Apps
-    icon: icon
-    name: Something
-    pod-selector: app.kubernetes.io/instance=foo
-    weight: 10
-    instance: public
-
-
-  # -----
-  # SIMPLE CONFIG - useful for vast majority of deployments
-  # uses default (parametrized) values for `annotations` and `rules`
-  # -----
-  # `ingress.host` - desired domain name. Required when `ingress.simple: true`, ignored otherwise
-  host: something.k8s.prorocketeers.com
-
-  # ----
-  # ADVANCED CONFIG - assuming user knows what they're doing
-  # simply passes specified values into the Ingress config as-is
-  # ----
-  simple: false
-  # `ingress.annotations` - Ingress's `metadata.annotations`
-  annotations: 
-    kubernetes.io/ingress.class: nginx
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.tls.certresolver: static
-    traefik.ingress.kubernetes.io/router.tls.domains.0.main: something.k8s.prorocketeers.com
-  # `ingress.rules` - array of rules, to be used for `spec.rules`
+  annotations: {}
+  labels: {}
   rules:
     - host: something.k8s.prorocketeers.com
       http:
@@ -243,13 +216,11 @@ ingress:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: service--component--deployment--environment
+                name: service--component--environment
                 port:
                   number: 80
-  tls:
-    - hosts:
-        - something.k8s.prorocketeers.com
-      secretName: something-tls
+  tls: []
+  # ... rest of the Ingress spec, like `ingressClassName`
 
 # `volumes` - configuration of Volumes to be potentially created and mounted into Containers
 volumes:
@@ -341,7 +312,20 @@ sidecars: # optional
       inheritMainContainerTag: false # optional, default false
     # Regular Container spec, like `initContainers`
 
-# `podAnnotations` - key-value object of the deployed Pod's annotations. OPTIONAL
+# used for scraping metrics from the main deployment
+serviceMonitor:
+  enabled: true
+  # structure of this array is taken directly from Prometheus Operator `ServiceMonitor` CRD
+  # configurable values are here https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.Endpoint
+  endpoints:
+    # note that this port is NOT automatically created and has to be specified manually in the `ports` array
+    - port: metrics
+      path: /metrics
+      scheme: http
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: false
+      honorTimestamps: true
 
 # `preDeploymentJob` - specifies a Kubernetes Job that is run *before* the deployment starts
 # it has its own set of config properties - nothing is inherited from top-level config
@@ -383,6 +367,22 @@ preDeploymentJob:
 
   # see above
   volumes: {}
+
+  # similar to main deployment ServiceMonitor, this monitors specifically the job and its Pods
+  # NOTE: these pods are usually very short lived, on the order of seconds to minutes at most
+  # take in consideration if it's even useful to scrape or not, and if so - set a short interval and scrape timeout
+  # so Prometheus can actually even try and scrape it intime
+  podMonitor:
+    enabled: true
+    # properties of this array are slightly different - https://prometheus-operator.dev/docs/api-reference/api#monitoring.coreos.com/v1.PodMetricsEndpoint
+    endpoints:
+      - port: metrics
+        path: /metrics
+        scheme: http
+        interval: 15s
+        scrapeTimeout: 10s
+        honorLabels: false
+        honorTimestamps: true
   
   # optionally, rest of Kubernetes Job spec (except `template`)
   activeDeadlineSeconds: null
@@ -484,6 +484,18 @@ cronjobs:
     # supports most container values like `args`, `command`, `envs` ...
     initContainers: []
     volumes: {}
+
+    # same as `preDeploymentJob.podMonitor`
+    podMonitor:
+      enabled: true
+      endpoints:
+        - port: metrics
+          path: /metrics
+          scheme: http
+          interval: 15s
+          scrapeTimeout: 10s
+          honorLabels: false
+          honorTimestamps: true
 
     cronJobAnnotations: {}
     cronJobLabels: {}

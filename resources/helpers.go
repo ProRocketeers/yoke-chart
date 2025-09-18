@@ -7,6 +7,9 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func sortedMap[T any](m map[string]T) iter.Seq2[string, T] {
@@ -50,26 +53,46 @@ func pvcName(volumeName string, metadata Metadata) string {
 	return fmt.Sprintf("%s--%s", serviceName(metadata), volumeName)
 }
 
-func vaultSecretName(secretPath string, metadata Metadata) string {
+func secretName(secretPath, secretStoreName string, metadata Metadata) string {
 	path := strings.Clone(secretPath)
 	path = strings.ReplaceAll(path, "/", "-")
 
-	name := fmt.Sprintf("%s--vault--%s", serviceName(metadata), path)
+	name := fmt.Sprintf("%s--%s--%s", serviceName(metadata), secretStoreName, path)
 	targetLength := min(len(name), 63)
 	name = name[:targetLength]
 	name = strings.TrimSuffix(name, "-")
 	return name
 }
 
-func vaultName(metadata Metadata) string {
-	if metadata.Environment == "dev" || metadata.Environment == "test" {
-		return "vault-test"
-	} else {
-		return "vault-prod"
-	}
-}
-
 func preDeploymentJobName(metadata Metadata) string {
 	// TODO: add something to make it unique?? chart had `Release.Revision`
 	return fmt.Sprintf("%s--pre-deploy", serviceName(metadata))
+}
+
+func cronjobName(cronjob Cronjob) string {
+	return fmt.Sprintf("%s--%s", cronjob.Name, cronjob.Metadata.Environment)
+}
+
+func toUnstructured(objects ...runtime.Object) ([]unstructured.Unstructured, error) {
+	var (
+		ret    []unstructured.Unstructured
+		errors []string
+	)
+
+	for _, obj := range objects {
+		o, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+		if err != nil {
+			errors = append(errors, err.Error())
+		} else {
+			// drop the `status` field as that's never needed for creating objects and causes diff
+			delete(o, "status")
+			ret = append(ret, unstructured.Unstructured{Object: o})
+		}
+	}
+
+	if len(errors) > 0 {
+		return []unstructured.Unstructured{}, fmt.Errorf("found %v errors: %v", len(errors), errors)
+	}
+
+	return ret, nil
 }

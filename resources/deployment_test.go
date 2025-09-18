@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ProRocketeers/yoke-chart/schema"
+	"github.com/google/go-cmp/cmp"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -149,21 +150,21 @@ func TestDeployment(t *testing.T) {
 					}
 				},
 				Asserts: func(t *testing.T, d *appsv1.Deployment) {
-					assert.Contains(t, d.Spec.Template.Spec.Volumes, corev1.Volume{
+					partialContains(t, d.Spec.Template.Spec.Volumes, corev1.Volume{
 						Name: "my-secret-volume",
 						VolumeSource: corev1.VolumeSource{
 							Secret: &corev1.SecretVolumeSource{
 								SecretName:  "mySecret",
 								DefaultMode: ptr.To(int32(0444)),
-								Items:       []corev1.KeyToPath{},
+								Items:       nil,
 							},
 						},
-					})
-					assert.Contains(t, d.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+					}, cmp.Options{})
+					partialContains(t, d.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
 						Name:      "my-secret-volume",
 						MountPath: "/secret",
 						ReadOnly:  true,
-					})
+					}, cmp.Options{})
 				},
 			}
 		},
@@ -476,7 +477,7 @@ func TestDeployment(t *testing.T) {
 			if err != nil {
 				t.Errorf("errpr during test setup: %v", err)
 			}
-			deployment := resources[0].(*appsv1.Deployment)
+			deployment := fromUnstructuredOrPanic[*appsv1.Deployment](resources[0])
 
 			config.Asserts(t, deployment)
 		})

@@ -136,9 +136,8 @@ func TestPVC(t *testing.T) {
 			if err != nil {
 				t.Errorf("error during test setup: %v", err)
 			}
-			pvc := resources[0].(*corev1.PersistentVolumeClaim)
 
-			config.Asserts(t, pvc)
+			config.Asserts(t, fromUnstructuredOrPanic[*corev1.PersistentVolumeClaim](resources[0]))
 		})
 	}
 
