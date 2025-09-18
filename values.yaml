@@ -1,0 +1,521 @@
+# Metadata for the deployment - used mostly for unified name of related resources
+# -------------------------------------------------------------------------------
+# `namespace` - Kubernetes namespace for deployment
+namespace: my-ns
+# `service` - name of the application as a whole
+service: something
+# `component` - "part" of the application
+component: app
+# `environment` - environment of the deployment
+environment: test
+
+# Container values
+# ----------------
+image:
+  # `image.repository` - repository part of the image URL (not including image tag)
+  repository: ''
+  # `image.tag` - tag of the container image
+  tag: ''
+  # `image.pullPolicy` - container image pull policy. OPTIONAL, default "IfNotPresent"
+  pullPolicy: IfNotPresent
+  # `image.pullSecrets` - names of Kubernetes secrets used for pulling the container image. OPTIONAL
+  pullSecrets:
+    - ''
+
+# `mainContainerName` - name of the main Pod container. OPTIONAL, default "main"
+mainContainerName: main-container
+# `replicaCount` - fixed amount of replicas of the deployment. OPTIONAL, default 1
+# if `autoscaling` is set, this value is ignored
+replicaCount: 1
+# `args` - container's args - array of string arguments for the image. OPTIONAL
+args:
+  - ''
+# `command` - container's command - array of string commands/parts for the image. OPTIONAL
+command:
+  - ''
+# `ports` - specifies the container's ports. First entry is considered a "main" port.
+ports: 
+  # `ports.port` - service (and if not overridden, container) port
+  - port: 80
+  - port: 8080
+    # `ports.containerPort` - container port. OPTIONAL - defaults to `ports.port` value 
+    containerPort: 8081
+    # `ports.expose` - whether to expose the port in Service. OPTIONAL - default `false`
+    expose: false
+    # `ports.name` - override for the pre-generated port name. OPTIONAL
+    name: metrics
+
+# Environment variables
+# `envs` - key-value pairs of literal environment values. OPTIONAL
+envs: 
+  MY_ENV: value
+# `envsRaw` - environment variables in raw form as described by Kubernetes. OPTIONAL
+envsRaw: # optional
+  - name: MY_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: MY_CPU_REQUEST
+    valueFrom:
+      resourceFieldRef:
+        containerName: test-container
+        resource: requests.cpu
+  - name: UI_PROPERTIES_FILE_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: game-demo
+        key: ui_properties_file_name
+# `kubeSecrets` - mapping of Kubernetes Secrets to environment variables. OPTIONAL
+kubeSecrets:
+  # Kubernetes secret name
+  secretNameOne:
+    # Key-value pair of environment variable name to key in the Kubernetes secret
+    MY_SECRET_ENV: secretKey
+  # If the value is omitted, all keys from the secret are loaded (env variable name is the same as the secret key)
+  secretNameTwo: null
+
+# `vaultSecrets` - mapping of Vault Secrets to environment variables
+vaultSecrets:
+  # Path to the secret in Vault - prefix `secret/` is omitted
+  path/to/secret:
+    # Key-value pair of environment variable name to key in the Vault secret
+    MY_SECRET_ENV: key_in_secret
+    # If the key is omitted, same name as the env var is assumed
+    MY_OTHER_SECRET: null
+  # If the mapping vlaue is omitted, all keys from the secret are loaded with the same name
+  path/to/another/secret: null
+
+# `resources` - specification of minimum/maximum resources a Pod can get. OPTIONAL
+# uses Kubernetes specification
+resources:
+  requests:
+    cpu: 200m
+    memory: 100Mi
+  limits:
+    cpu: 400m
+    memory: 200Mi
+
+# `autoscaling` - configures a HorizontalPodAutoscaler, as specified by Kubernetes specification. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/horizontal-pod-autoscaler-v2/#HorizontalPodAutoscalerSpec
+# if specified, `replicaCount` is ignored
+autoscaling: {}
+  # `autoscaling.scaleTargetRef` is ignored and automatically set to the name of the Deployment
+
+# `strategy` - Deployment strategy, as specified by Kubernetes specification. OPTIONAL
+strategy:
+  type: RollingUpdate # or Recreate
+  rollingUpdate:
+    maxUnavailable: 25%
+    maxSurge: 25%
+
+# `podDisruptionBudget` - configures a PodDisruptionBudget, as specified by Kubernetes specification. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/pod-disruption-budget-v1/#PodDisruptionBudgetSpec
+podDisruptionBudget: {}
+  # `podDisruptionBudget.selector` is ignored and automatically set Pods related to Deployment
+
+# `readinessProbe` - configures the Container's readiness probe as described by Kubernetes. OPTIONAL
+readinessProbe:
+  exec:
+    command:
+      - ''
+  httpGet:
+    port: 0
+    host: ''
+    httpHeaders:
+      - name: ''
+        value: ''
+    path: ''
+    scheme: ''
+  tcpSocket:
+    port: 0
+    host: ''
+  initialDelaySeconds: 0
+  terminationGracePeriodSeconds: 0
+  periodSeconds: 0
+  timeoutSeconds: 0
+  failureThreshold: 0
+  successThreshold: 0
+# `livenessProbe` - configures the Container's liveness probe as described by Kubernetes. OPTIONAL
+livenessProbe:
+  exec:
+    command:
+      - ''
+  httpGet:
+    port: 0
+    host: ''
+    httpHeaders:
+      - name: ''
+        value: ''
+    path: ''
+    scheme: ''
+  tcpSocket:
+    port: 0
+    host: ''
+  initialDelaySeconds: 0
+  terminationGracePeriodSeconds: 0
+  periodSeconds: 0
+  timeoutSeconds: 0
+  failureThreshold: 0
+  successThreshold: 0
+# `lifecycle` - configures Container's lifecycle properties as described by Kubernetes. OPTIONAL
+lifecycle:
+  postStart:
+    exec:
+      command:
+        - ''
+    httpGet:
+      port: 0
+      host: ''
+      httpHeaders:
+        - name: ''
+          value: ''
+      path: ''
+      scheme: ''
+  preStop:
+    exec:
+      command:
+        - ''
+    httpGet:
+      port: 0
+      host: ''
+      httpHeaders:
+        - name: ''
+          value: ''
+      path: ''
+      scheme: ''
+
+# `initContainers` - array of Init Containers of the deployments. OPTIONAL
+initContainers:
+    # `initContainers.name` - name of the init container. OPTIONAL - defaults to `init-container-{index}`
+  - name: ''
+    image:
+      # ...
+      # `initContainers.inheritMainContainerTag` - if `true`, then it uses main container's image tag. Useful for monorepos maybe. OPTIONAL - default `false`
+      inheritMainContainerTag: true
+      
+    # regular Container specification, like `image`, `lifecycle`, `command`, `args`, `envs`, `ports` etc.
+    # init containers do NOT inherit any other properties from top-level config
+
+# `ingress` - Ingress configuration. Exposes a service through a domain name. OPTIONAL
+ingress:
+  # `ingress.enabled` - OPTIONAL - default `false`
+  enabled: true
+  # `ingress.homepage` - if specified, emits additional annotations for Homepage configuration
+  # these are taken verbatim as-is, just prefixed with `gethomepage.dev/`
+  homepage:
+    # examples, for full docs, see https://gethomepage.dev/configs/services and https://gethomepage.dev/configs/kubernetes/#automatic-service-discovery
+    enabled: "true"
+    href: https://something.k8s.prorocketeers.com
+    description: Something
+    group: My Apps
+    icon: icon
+    name: Something
+    pod-selector: app.kubernetes.io/instance=foo
+    weight: 10
+    instance: public
+
+
+  # -----
+  # SIMPLE CONFIG - useful for vast majority of deployments
+  # uses default (parametrized) values for `annotations` and `rules`
+  # -----
+  # `ingress.host` - desired domain name. Required when `ingress.simple: true`, ignored otherwise
+  host: something.k8s.prorocketeers.com
+
+  # ----
+  # ADVANCED CONFIG - assuming user knows what they're doing
+  # simply passes specified values into the Ingress config as-is
+  # ----
+  simple: false
+  # `ingress.annotations` - Ingress's `metadata.annotations`
+  annotations: 
+    kubernetes.io/ingress.class: nginx
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: static
+    traefik.ingress.kubernetes.io/router.tls.domains.0.main: something.k8s.prorocketeers.com
+  # `ingress.rules` - array of rules, to be used for `spec.rules`
+  rules:
+    - host: something.k8s.prorocketeers.com
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: service--component--deployment--environment
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - something.k8s.prorocketeers.com
+      secretName: something-tls
+
+# `volumes` - configuration of Volumes to be potentially created and mounted into Containers
+volumes:
+  # examples
+  # key-value pairs, where key is the volume name (lowercase-kebab-cased), value is the configuration
+  standard-volume:
+    # `volume.type` - default `tmpfs` in-memory temporary volume (for small volume of data) or `local` for on-disk temporary volume (for larger volume of data). OPTIONAL
+    type: tmpfs 
+    # `volume.mounts` - key-value pairs, where key is Container name (`<main-container-name>`, `<sidecar-name>` or `<init container name>`) and value describes where to mount the volume
+    mounts:
+      containerName: 
+        # `volume.mounts.volumePath` - subpath within the volume. OPTIONAL - default null (mounts the entire volume)
+        volumePath: ''
+        # `volume.mounts.containerPath` - where to mount the volume
+        containerPath: ''
+  raw-volume:
+    # Raw volume specification as described by Kubernetes
+    type: raw
+    mounts: {} # see above
+    # `volume.spec` - the raw volume specification, see
+    # https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume
+    spec:
+      # just example
+      configMap:
+        name: log-config
+        items:
+          - key: log_level
+            path: log_level
+  persistent-volume:
+    # Persistent volume configuration
+    type: persistent
+    mounts:
+      containerName:
+        volumePath: '' # optional, default nil
+        containerPath: ''
+    # either
+    # `volume.existing` - whether to create a new PersistentVolumeClaim or use pre-existing PVC
+    existing: false
+    # `volume.accessModes` - requested volume access modes. OPTIONAL - default array ["ReadWriteOnce"]
+    accessModes:
+      - ReadWriteOnce
+    size: 2Gi
+    # REQUIRED
+    storageClassName: hpe-storage
+    # `volume.volumeMode` - type of the volume - Filesystem/Block. OPTIONAL - default `Filesystem`
+    volumeMode: Filesystem # optional, default "Filesystem"
+    # or
+    # existing: true
+    # `volume.pvcName` - name of the PersistentVolumeClaim to mount
+    pvcName: my-pvc
+  secrets-volume:
+    # Secrets volume, allowing the user to mount Kubernetes Secrets as files
+    type: secret
+    # `volume.mode` - file access mode. OPTIONAL - default 0400 (256 if using JSON)
+    mode: 0400
+    # `volume.secretName` - name of the Kubernetes secret to mount. Must exist beforehand
+    secretName: secretName
+    mounts: 
+      containerName: 
+        # no volumePath this time
+        containerPath: ''
+    # `volume.items` - allows the user to specify which secret keys to mount. If not specified, all secret keys will be mounted.
+    items:
+      # filePath = key
+      FILE_PATH: secretKey
+  configmap-volume:
+    # ConfigMap volume, allowing the user to mount Kubernetes ConfigMaps as files
+    type: configMap
+    # `volume.mode` - file access mode. OPTIONAL - default 0400 (256 if using JSON)
+    mode: 0400
+    # `volume.configMapName` - name of the Kubernetes ConfigMap to mount. Must exist beforehand
+    configMapName: configMapName
+    mounts: 
+      containerName: 
+        # no volumePath this time
+        containerPath: ''
+    # `volume.items` - allows the user to specify which configmap keys to mount. If not specified, all keys will be mounted.
+    items:
+      # filePath = key
+      FILE_PATH: secretKey
+
+# `sidecars` - specifies Containers running alongside of the main container. 
+# These will automatically be also mounted into other containers as `/sidecar/{sidecarName}`
+sidecars: # optional
+  sidecarName:
+    image:
+      # ...
+      # `sidecars.inheritMainContainerTag` - identical function to `initContainers`. OPTIONAL - default `false`
+      inheritMainContainerTag: false # optional, default false
+    # Regular Container spec, like `initContainers`
+
+# `podAnnotations` - key-value object of the deployed Pod's annotations. OPTIONAL
+
+# `preDeploymentJob` - specifies a Kubernetes Job that is run *before* the deployment starts
+# it has its own set of config properties - nothing is inherited from top-level config
+# useful for preparing the environment of the application, such as DB migrations
+preDeploymentJob:
+  # container values
+  image:
+    repository: ''
+    tag: ''
+    inheritMainContainerTag: false
+    pullPolicy: IfNotPresent
+    pullSecrets:
+      - ''
+  mainContainerName: ''
+  args: []
+  command: []
+  # if you want to re-use envs, use YAML anchors
+  envs: {}
+  envsRaw: {}
+  kubeSecrets: {}
+
+  initContainers:
+    - name: foo
+      # container values
+      image:
+        # ...
+        inheritMainContainerTag: true
+  
+  # `annotations` - key-value object of the Job's annotations. OPTIONAL
+  annotations: {}
+  # `podAnnotations` - key-value object of the deployed Pod's annotations. OPTIONAL
+  podAnnotations: {}
+
+  # `labels` - key-value object of the Job's labels. OPTIONAL
+  labels: {}
+  # `podLabels` - key-value object of the deployed Pod's labels. OPTIONAL
+  podLabels: {}
+
+
+  # see above
+  volumes: {}
+  
+  # optionally, rest of Kubernetes Job spec (except `template`)
+  activeDeadlineSeconds: null
+  backoffLimit: null
+  completionMode: null
+  completions: null
+  parallelism: null
+  podFailurePolicy: null
+  selector: null
+  suspend: null
+  ttlSecondsAfterFinished: null
+
+
+# `annotations` - key-value object of the Deployment's annotations. OPTIONAL
+annotations: {}
+# `podAnnotations` - key-value object of the deployed Pod's annotations. OPTIONAL
+podAnnotations: {}
+
+# `labels` - key-value object of the Deployment's labels. OPTIONAL
+labels: {}
+# `podLabels` - key-value object of the deployed Pod's labels. OPTIONAL
+podLabels: {}
+
+# TODO: refactor and split RBAC if needed
+# `serviceAccount` - configures the ServiceAccount to be used by the chart's workloads. OPTIONAL
+# a ServiceAccount is always created per-chart (and used by all Pods in the chart), with a templated name (same as the main Deployment)
+# you can configure its annotations or RBAC rules paired with it
+serviceAccount:
+  # `serviceAccount.annotations` - annotation to add to the ServiceAccount - key-value object. OPTIONAL
+  annotations: {}
+  # `serviceAccount.additionalRole` - creates a Role + RoleBinding to the specified ServiceAccount, providing RBAC access to resources in the chart's namespace
+  additionalRole:
+    # `name` - overrides the name of the Role + RoleBinding to create. OPTIONAL - will be templated otherwise
+    name: ""
+    rules:
+      - apiGroups: [""]
+        resources: [""]
+        verbs: [""]
+  # `serviceAccount.additionalClusterRole` - creates a ClusterRole + ClusterRoleBinding to the specified ServiceAccount, providing RBAC access to resources in the whole cluster
+  # use with caution
+  additionalClusterRole:
+    # `name` - overrides the name of the Role + RoleBinding to create. OPTIONAL - will be templated otherwise
+    name: ""
+    rules:
+      - apiGroups: [""]
+        resources: [""]
+        verbs: [""]
+
+
+# `nodeSelector` - selector configuring which Nodes can be used for Deployment. OPTIONAL
+nodeSelector: {} # optional
+
+# `tolerations` - array of Tolerations as described by Kubernetes. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+tolerations: []
+
+# `affinity` - Affinity configuration as described by Kubernetes - NodeAffinity | PodAffinity | PodAntiAffinity. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#NodeAffinity
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodAffinity
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodAntiAffinity
+affinity: {}
+
+# `extraManifests` - array of extra Kubernetes objects (or template strings to be evaluated) to be rendered by the chart. OPTIONAL
+# rendered *once*, NOT per deployment, not validated in any way
+extraManifests: []
+
+# `db` - renders a Zalando Postgres cluster
+db:
+  enabled: false
+  clusterName: my-db
+  replicas: 1
+  version: 15
+  size: 5Gi
+  storageClass: hpe-storageclass
+  backup: true
+  users:
+    # key: user name, value - array of user DB capabilities
+    user-name:
+      # user flags - see documentation below
+      - superuser
+      - createdb
+  databases:
+    # key: database name, value: user name (owner of the database)
+    database-name: user-name
+  # any additional configuration options as described in Postgres manifest
+  # https://postgres-operator.readthedocs.io/en/latest/reference/cluster_manifest/
+  additionalConfig: {}
+
+# `cronjobs` - array of CronJobs to be created. OPTIONAL
+# just like `preDeploymentJob`, CronJobs have their own set of properties - nothing inherited
+cronjobs:
+  - name: cronjob
+    schedule: "* * * * *"
+    image:
+      repository: ''
+      tag: ''
+      inheritMainContainerTag: false
+
+    # supports most container values like `args`, `command`, `envs` ...
+    initContainers: []
+    volumes: {}
+
+    cronJobAnnotations: {}
+    cronJobLabels: {}
+    jobAnnotations: {}
+    jobLabels: {}
+    podAnnotations: {}
+    podLabels: {}
+    
+    # overrides for CronJobSpec
+    suspend: false
+    timeZone: Europe/Prague
+    concurrencyPolicy: Forbid
+    startingDeadlineSeconds: 5
+    successfulJobsHistoryLimit: 5
+    failedJobsHistoryLimit: 2
+
+    # overrides for JobSpec
+    activeDeadlineSeconds: null
+    backoffLimit: null
+    completionMode: null
+    completions: null
+    parallelism: null
+    podFailurePolicy: null
+    selector: null
+    ttlSecondsAfterFinished: null
+    
+configMaps:
+  # this sets the name of the ConfigMap and gets templated as `{service}--{component}--{env}-{name}`
+  name:
+    # the content is not templated in any way
+    key: content
+    otherKey: |
+      some
+      other
+      content
