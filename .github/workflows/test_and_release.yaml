@@ -1,4 +1,4 @@
-name: CI (Go + yoke)
+name: Test and Release Yoke chart
 
 on:
   push:
@@ -8,11 +8,11 @@ on:
     branches: ["**"]
 
 env:
+  REGISTRY_HOST: ghcr.io
   REGISTRY_USERNAME: ${{ github.actor }}
   # should be already provided in the pipeline
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
   YOKE_CLI_VERSION: v0.16.6
-  YOKE_DOWNLOAD_URL: https://github.com/yokecd/yoke/releases/download/${{ env.YOKE_CLI_VERSION}}/yoke_${{ env.YOKE_CLI_VERSION}}_linux_amd64.gz
 
 jobs:
   test:
@@ -71,6 +71,7 @@ jobs:
             exit 1
           fi
 
+          YOKE_DOWNLOAD_URL="https://github.com/yokecd/yoke/releases/download/${YOKE_CLI_VERSION}/yoke_${YOKE_CLI_VERSION}_linux_amd64.gz"
           echo "Downloading yoke from: $YOKE_DOWNLOAD_URL"
           curl -sSL --retry 3 "$YOKE_DOWNLOAD_URL" -o /tmp/yoke.gz
 
@@ -94,8 +95,7 @@ jobs:
           GOOS=wasip1 GOARCH=wasm go build -o chart.wasm
 
       - name: Publish WASM artifact to GHCR
-        env:
-          CHART_URL: oci://${{ env.REGISTRY_HOST }}/ProRocketeers/yoke-chart
         run: |
+          CHART_URL="oci://${REGISTRY_HOST}/prorocketeers/yoke-chart"
           echo "Publishing to $CHART_URL with tags: ${TAG_NAME},latest"
           $HOME/bin/yoke stow -tag "${TAG_NAME},latest" ./chart.wasm "$CHART_URL"
