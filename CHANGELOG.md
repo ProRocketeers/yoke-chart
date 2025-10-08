@@ -14,9 +14,18 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.1.0] - 2025-10-08
+
+### :boom: Breaking change
+- fixed the length of the `ExternalSecrets` rendered by the Flight to 253 characters instead of previous 63
+  - what changes?
+    - if you happened to reuse an `ExternalSecret` by referencing the generated name, it was previously truncated to 63 characters
+    - now you can use the full name as it was intended - `{service}--{component}--{env}--{secretStoreName}--{pathToSecret}`
+
 ## [1.0.0] - 2025-09-19
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.0.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/ProRocketeers/yoke-chart/tree/1.0.0

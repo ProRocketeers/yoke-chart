@@ -58,7 +58,7 @@ func secretName(secretPath, secretStoreName string, metadata Metadata) string {
 	path = strings.ReplaceAll(path, "/", "-")
 
 	name := fmt.Sprintf("%s--%s--%s", serviceName(metadata), secretStoreName, path)
-	targetLength := min(len(name), 63)
+	targetLength := min(len(name), 253)
 	name = name[:targetLength]
 	name = strings.TrimSuffix(name, "-")
 	return name
