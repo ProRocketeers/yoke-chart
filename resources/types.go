@@ -42,6 +42,9 @@ type DeploymentValues struct {
 	Affinity     *corev1.Affinity
 
 	ExtraManifests []unstructured.Unstructured
+
+	Kind        string
+	StatefulSet *appsv1.StatefulSetSpec
 }
 
 type Metadata struct {

@@ -14,6 +14,19 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.2.0] - 2026-01-16
+
+### :star: Added
+- added possibility for rendering `StatefulSet` instead of `Deployment`:
+  - to enable, specify:
+    ```yaml
+    kind: StatefulSet
+    statefulSet:
+      # any property in the official StatefulSetSpec
+      podManagementPolicy: Parallel
+    ```
+  - this also automatically renders the headless `Service` that the `StatefulSet` requires
+
 ## [1.1.0] - 2025-10-08
 
 ### :boom: Breaking change
@@ -26,6 +39,7 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.1.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/ProRocketeers/yoke-chart/tree/1.0.0

@@ -56,7 +56,7 @@ func run() error {
 
 	resources, err := collectResources(
 		deploymentValues,
-		resources.CreateDeployment,
+		resources.CreateMainWorkload,
 		resources.CreateService,
 		resources.CreateIngress,
 		resources.CreateServiceAccount,
@@ -123,6 +123,9 @@ func parseFromSource(r io.Reader) (schema.InputValues, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(values); err != nil {
 		return schema.InputValues{}, fmt.Errorf("validation error: %v", err)
+	}
+	if err := schema.CustomValidations(values); err != nil {
+		return schema.InputValues{}, fmt.Errorf("custom validation error: %v", err)
 	}
 	return values, nil
 }

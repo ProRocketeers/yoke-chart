@@ -28,6 +28,17 @@ func TestSetup(t *testing.T) {
 				},
 			}
 		},
+		"uses default Kind = Deployment": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.NotZero(t, dv)
+
+					assert.Equal(t, "Deployment", dv.Kind)
+				},
+			}
+		},
 		"can override default replica count": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(iv *schema.InputValues) {},

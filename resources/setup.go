@@ -30,6 +30,8 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		ConfigMaps:          input.ConfigMaps,
 		ExtraManifests:      []unstructured.Unstructured{},
 		ServiceMonitor:      input.ServiceMonitor,
+		Kind:                "Deployment",
+		StatefulSet:         input.StatefulSet,
 
 		Metadata: Metadata{
 			Namespace:   input.Metadata.Namespace,
@@ -40,6 +42,10 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 	}
 	if input.ReplicaCount != nil {
 		values.ReplicaCount = *input.ReplicaCount
+	}
+
+	if input.Kind != nil {
+		values.Kind = *input.Kind
 	}
 
 	if containers, err := getDeploymentContainers(input); err != nil {

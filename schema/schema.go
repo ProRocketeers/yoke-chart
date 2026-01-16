@@ -52,6 +52,9 @@ type InputValues struct {
 	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
 
 	ExtraManifests []map[string]interface{} `json:"extraManifests,omitempty"`
+
+	Kind        *string                 `json:"kind,omitempty"`
+	StatefulSet *appsv1.StatefulSetSpec `json:"statefulSet,omitempty"`
 }
 
 type Image struct {

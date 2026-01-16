@@ -108,6 +108,7 @@ autoscaling: {}
   # `autoscaling.scaleTargetRef` is ignored and automatically set to the name of the Deployment
 
 # `strategy` - Deployment strategy, as specified by Kubernetes specification. OPTIONAL
+# NOTE - if `kind: StatefulSet` is set, this field is ignored (use `statefulSpec.updateStrategy` object)
 strategy:
   type: RollingUpdate # or Recreate
   rollingUpdate:
@@ -311,6 +312,16 @@ sidecars: # optional
       # `sidecars.inheritMainContainerTag` - identical function to `initContainers`. OPTIONAL - default `false`
       inheritMainContainerTag: false # optional, default false
     # Regular Container spec, like `initContainers`
+
+# StatefulSet configuration
+# -------------------------
+# `kind` - specifies, if the main workload is a Deployment (default, also accepted value), or StatefulSet. OPTIONAL - default `Deployment`
+kind: StatefulSet
+
+# `statefulSet` - full `StatefulSetSpec` specification as specified by Kubernetes. https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/stateful-set-v1/#StatefulSetSpec
+# NOTE - some fields are ignored, as they are templated/generated/prepopulated by the Flight - `serviceName`, `selector`, `template`, `replicas`
+# the headless Service for the StatefulSet is also generated for you
+statefulSet: {}
 
 # used for scraping metrics from the main deployment
 serviceMonitor:
