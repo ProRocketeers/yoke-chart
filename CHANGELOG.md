@@ -14,6 +14,37 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.3.0] - 2026-02-06
+
+### :star: Added
+- support for Gateway API's `HTTPRoute`
+  - works the same as `ingress` - specify an `enabled` flag, optionally `annotations` and `labels`, and the rest is from the original `HTTPRouteSpec`
+  - **NOTE:** obviously, both `ingress.enabled` and `httpRoute.enabled` cannot be `true` at the same time
+  - e.g.
+    ```yaml
+    httpRoute:
+      enabled: true
+      # ... rest of the HTTPRoute spec
+      parentRefs:
+        - namespace: foo
+          name: my-gateway
+      hostnames:
+        - my-service.prorocketeers.com
+      rules:
+        - matches:
+            - path:
+                value: /
+          filters:
+            - type: RequestHeaderModifier
+              requestHeaderModifier:
+                add:
+                  - name: my-header
+                    value: foo
+          backendRefs:
+            - name: my-service2
+              port: 8080
+    ```
+
 ## [1.2.0] - 2026-01-16
 
 ### :star: Added
@@ -39,7 +70,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.2.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/ProRocketeers/yoke-chart/tree/1.0.0

@@ -204,6 +204,7 @@ initContainers:
     # init containers do NOT inherit any other properties from top-level config
 
 # `ingress` - Ingress configuration. Exposes a service through a domain name. OPTIONAL
+# !! MUTUALLY EXCLUSIVE with `httpRoute` (both can be specified, but either none, or only one of them can be `enabled: true`)
 ingress:
   # `ingress.enabled` - OPTIONAL - default `false`
   enabled: true
@@ -222,6 +223,33 @@ ingress:
                   number: 80
   tls: []
   # ... rest of the Ingress spec, like `ingressClassName`
+
+# `httpRoute` - Gateway API HTTPRoute configuration. OPTIONAL
+# !! MUTUALLY EXCLUSIVE with `ingress` (both can be specified, but either none, or only one of them can be `enabled: true`)
+httpRoute:
+  # `httpRoute.enabled` - OPTIONAL - default `false`
+  enabled: true
+  annotations: {}
+  labels: {}
+  # ... rest of the HTTPRoute spec
+  parentRefs:
+    - namespace: foo
+      name: my-gateway
+  hostnames:
+    - my-service.prorocketeers.com
+  rules:
+    - matches:
+        - path:
+            value: /
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: my-header
+                value: foo
+      backendRefs:
+        - name: my-service2
+          port: 8080
 
 # `volumes` - configuration of Volumes to be potentially created and mounted into Containers
 volumes:

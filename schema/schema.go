@@ -20,6 +20,7 @@ import (
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	yaml "github.com/goccy/go-yaml"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 type InputValues struct {
@@ -33,6 +34,7 @@ type InputValues struct {
 	PodDisruptionBudget *policyv1.PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
 	InitContainers      []InitContainer                   `json:"initContainers,omitempty" validate:"dive"`
 	Ingress             *Ingress                          `json:"ingress,omitempty"`
+	HTTPRoute           *HTTPRoute                        `json:"httpRoute,omitempty"`
 	Volumes             map[string]Volume                 `json:"volumes,omitempty" validate:"dive"`
 	Sidecars            map[string]Container              `json:"sidecars,omitempty" validate:"dive"`
 	PreDeploymentJob    *PreDeploymentJob                 `json:"preDeploymentJob,omitempty"`
@@ -123,6 +125,14 @@ type Ingress struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 
 	networkingv1.IngressSpec `json:",inline"`
+}
+
+type HTTPRoute struct {
+	Enabled     *bool             `json:"enabled" validate:"required"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+
+	gatewayv1.HTTPRouteSpec `json:",inline"`
 }
 
 type PreDeploymentJob struct {

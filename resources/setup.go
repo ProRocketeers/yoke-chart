@@ -16,6 +16,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		Strategy:            input.Strategy,
 		PodDisruptionBudget: input.PodDisruptionBudget,
 		Ingress:             input.Ingress,
+		HTTPRoute:           input.HTTPRoute,
 		Volumes:             input.Volumes,
 		Sidecars:            input.Sidecars,
 		ServiceAccount:      input.ServiceAccount,
