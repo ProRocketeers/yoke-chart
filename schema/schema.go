@@ -27,22 +27,23 @@ type InputValues struct {
 	Metadata  `json:",inline"`
 	Container `json:",inline"`
 
-	MainContainerName   *string                           `json:"mainContainerName,omitempty"`
-	ReplicaCount        *int                              `json:"replicaCount,omitempty"`
-	Autoscaling         *HorizontalPodAutoscaler          `json:"autoscaling,omitempty"`
-	Strategy            *appsv1.DeploymentStrategy        `json:"strategy,omitempty"`
-	PodDisruptionBudget *policyv1.PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
-	InitContainers      []InitContainer                   `json:"initContainers,omitempty" validate:"dive"`
-	Ingress             *Ingress                          `json:"ingress,omitempty"`
-	HTTPRoute           *HTTPRoute                        `json:"httpRoute,omitempty"`
-	Volumes             map[string]Volume                 `json:"volumes,omitempty" validate:"dive"`
-	Sidecars            map[string]Container              `json:"sidecars,omitempty" validate:"dive"`
-	PreDeploymentJob    *PreDeploymentJob                 `json:"preDeploymentJob,omitempty"`
-	ServiceAccount      *ServiceAccount                   `json:"serviceAccount,omitempty"`
-	DB                  *Database                         `json:"db,omitempty"`
-	Cronjobs            []Cronjob                         `json:"cronjobs,omitempty" validate:"dive"`
-	ConfigMaps          map[string]map[string]string      `json:"configMaps"`
-	ServiceMonitor      *ServiceMonitor                   `json:"serviceMonitor"`
+	MainContainerName   *string                                   `json:"mainContainerName,omitempty"`
+	ReplicaCount        *int                                      `json:"replicaCount,omitempty"`
+	Autoscaling         *HorizontalPodAutoscaler                  `json:"autoscaling,omitempty"`
+	Strategy            *appsv1.DeploymentStrategy                `json:"strategy,omitempty"`
+	PodDisruptionBudget *policyv1.PodDisruptionBudgetSpec         `json:"podDisruptionBudget,omitempty"`
+	InitContainers      []InitContainer                           `json:"initContainers,omitempty" validate:"dive"`
+	Ingress             *Ingress                                  `json:"ingress,omitempty"`
+	HTTPRoute           *HTTPRoute                                `json:"httpRoute,omitempty"`
+	NetworkPolicies     map[string]networkingv1.NetworkPolicySpec `json:"networkPolicies"`
+	Volumes             map[string]Volume                         `json:"volumes,omitempty" validate:"dive"`
+	Sidecars            map[string]Container                      `json:"sidecars,omitempty" validate:"dive"`
+	PreDeploymentJob    *PreDeploymentJob                         `json:"preDeploymentJob,omitempty"`
+	ServiceAccount      *ServiceAccount                           `json:"serviceAccount,omitempty"`
+	DB                  *Database                                 `json:"db,omitempty"`
+	Cronjobs            []Cronjob                                 `json:"cronjobs,omitempty" validate:"dive"`
+	ConfigMaps          map[string]map[string]string              `json:"configMaps"`
+	ServiceMonitor      *ServiceMonitor                           `json:"serviceMonitor"`
 
 	Annotations    map[string]string `json:"annotations,omitempty"`
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
