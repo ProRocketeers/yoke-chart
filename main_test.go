@@ -85,27 +85,6 @@ func TestMain(t *testing.T) {
 				assert.Error(t, err)
 			},
 		},
-		"fails when both ingress and httpRoute are specified": {
-			Input: `
-        namespace: foo
-        service: foo
-        component: bar
-        environment: test
-
-        image:
-          repository: foo
-          tag: bleh
-
-        ingress:
-          enabled: true
-
-        httpRoute:
-          enabled: true
-      `,
-			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
-				assert.Error(t, err)
-			},
-		},
 	}
 
 	for testName, tc := range cases {

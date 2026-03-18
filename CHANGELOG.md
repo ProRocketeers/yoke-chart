@@ -14,6 +14,12 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.4.1] - 2026-03-18
+
+### :pencil2: Changed
+- validation for the mutual exclusivity of `ingress` and `httpRoute` was removed
+  - now both can be specified at the same, since they use different mechanisms and controllers for routing traffic and having both of them is vital for certain part of migrating
+
 ## [1.4.0] - 2026-03-13
 ### :star: Added
 - support for creating `NetworkPolicies`
@@ -95,7 +101,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.1...HEAD
+[1.4.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.1.0...1.2.0
