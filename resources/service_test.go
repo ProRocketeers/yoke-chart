@@ -28,6 +28,16 @@ func TestService(t *testing.T) {
 				},
 			}
 		},
+		"can override service type": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.ServiceType = corev1.ServiceTypeNodePort
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Equal(t, corev1.ServiceTypeNodePort, s.Spec.Type)
+				},
+			}
+		},
 		"renders proper port names": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
@@ -96,6 +106,31 @@ func TestService(t *testing.T) {
 						Protocol:   corev1.ProtocolTCP,
 						Port:       int32(8080),
 						TargetPort: intstr.FromInt(8085),
+					})
+				},
+			}
+		},
+		"allows to specify node port": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].Ports = []schema.Port{
+						{Port: 80},
+						{Port: 8080, NodePort: ptr.To(int32(31000))},
+					}
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Contains(t, s.Spec.Ports, corev1.ServicePort{
+						Name:       "main-port",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       int32(80),
+						TargetPort: intstr.FromInt(80),
+					})
+					assert.Contains(t, s.Spec.Ports, corev1.ServicePort{
+						Name:       "other-port-main-1",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       int32(8080),
+						TargetPort: intstr.FromInt(8080),
+						NodePort:   int32(31000),
 					})
 				},
 			}

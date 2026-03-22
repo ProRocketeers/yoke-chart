@@ -41,7 +41,7 @@ jobs:
 
       - name: Run go tests
         run: |
-          go test -count=1 -timeout 30s ./...
+          make test
 
   release:
     name: release chart
@@ -92,7 +92,7 @@ jobs:
 
       - name: Build WASM
         run: |
-          GOOS=wasip1 GOARCH=wasm go build -o chart.wasm
+          make build
 
       - name: Publish WASM artifact to GHCR
         run: |

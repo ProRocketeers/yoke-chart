@@ -85,6 +85,44 @@ func TestMain(t *testing.T) {
 				assert.Error(t, err)
 			},
 		},
+		"fails a node port out of its allowed range - lower bound": {
+			Input: `
+        namespace: foo
+        service: foo
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        ports:
+          - port: 80
+            nodePort: 2500
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.Error(t, err)
+			},
+		},
+		"fails a node port out of its allowed range - upper bound": {
+			Input: `
+        namespace: foo
+        service: foo
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        ports:
+          - port: 80
+            nodePort: 34000
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.Error(t, err)
+			},
+		},
 	}
 
 	for testName, tc := range cases {

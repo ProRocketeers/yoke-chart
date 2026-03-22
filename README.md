@@ -9,14 +9,13 @@ go install github.com/yokecd/yoke/cmd/yoke@latest
 ### Testing
 ```bash
 # run tests in current and all subdirectories
-# `count=1` is there to run fresh tests and not return cached results
-go test -count=1 -timeout 30s ./...
+make test
 
 # either run natively
 go run . < values.yaml
 
 # or build and test the compiled version
-GOOS=wasip1 GOARCH=wasm go build -o chart.wasm
+make build
 
 # `dry` => doesn't actually deploy anything
 # `cross-namespace` => allows to deploy across multiple namespaces (since we don't specify, the default is "default" namespace)
@@ -58,7 +57,7 @@ spec:
       name: yokecd
       parameters:
         - name: wasm
-          string: oci://ghcr.io/prorocketeers/yoke-chart:1.4.1
+          string: oci://ghcr.io/prorocketeers/yoke-chart:1.5.0
         - name: inputFiles
           # relative to the `source.path`
           array:

@@ -31,7 +31,7 @@ func CreateService(values DeploymentValues) (bool, ResourceCreator) {
 				Selector: map[string]string{
 					"app": serviceName(values.Metadata),
 				},
-				Type:  corev1.ServiceTypeClusterIP,
+				Type:  values.ServiceType,
 				Ports: getServicePorts(values),
 			},
 		}
@@ -55,6 +55,9 @@ func getServicePorts(values DeploymentValues) []corev1.ServicePort {
 			}
 			if port.ContainerPort != nil {
 				p.TargetPort = intstr.FromInt(*port.ContainerPort)
+			}
+			if port.NodePort != nil {
+				p.NodePort = *port.NodePort
 			}
 			if i == 0 && j == 0 {
 				// main container, first port => "main" port

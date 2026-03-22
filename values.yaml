@@ -44,6 +44,13 @@ ports:
     expose: false
     # `ports.name` - override for the pre-generated port name. OPTIONAL
     name: metrics
+    # `ports.nodePort` - allows to set a NodePort for this port in the Service. OPTIONAL
+    # must be in the range of 30000 - 32767 and not used by any other Service port
+    nodePort: 31000
+
+# `serviceType` - changes the main deployment's Service type. OPTIONAL - defaults to ClusterIP
+# NOTE: if any port has `nodePort` specified, and `serviceType: ClusterIP` or empty, then this is automatically overridden to `NodePort`
+serviceType: ClusterIP
 
 # Environment variables
 # `envs` - key-value pairs of literal environment values. OPTIONAL
@@ -568,3 +575,22 @@ configMaps:
       some
       other
       content
+
+networkPolicies:
+  # templates a NetworkPolicy as `{service}--{component}--{env}-{name}`
+  deny-all:
+    # values here is a non-filtered NetworkPolicySpec
+    podSelector:
+      matchLabels:
+        app: foo
+    policyTypes: [Ingress, Egress]
+  allow-some:
+    podSelector:
+      matchLabels:
+        app: foo
+    policyTypes: [Ingress]
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: ingress-nginx

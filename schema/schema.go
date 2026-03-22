@@ -45,6 +45,8 @@ type InputValues struct {
 	ConfigMaps          map[string]map[string]string              `json:"configMaps"`
 	ServiceMonitor      *ServiceMonitor                           `json:"serviceMonitor"`
 
+	ServiceType *corev1.ServiceType `json:"serviceType"`
+
 	Annotations    map[string]string `json:"annotations,omitempty"`
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 	Labels         map[string]string `json:"labels,omitempty"`
@@ -73,6 +75,7 @@ type Port struct {
 	ContainerPort *int    `json:"containerPort,omitempty"`
 	Expose        *bool   `json:"expose,omitempty"`
 	Name          *string `json:"name"`
+	NodePort      *int32  `json:"nodePort"`
 }
 
 // basically HorizontalPodAutoscalerSpec without the `scaleTargetRef` field

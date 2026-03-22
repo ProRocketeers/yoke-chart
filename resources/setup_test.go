@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -36,6 +37,67 @@ func TestSetup(t *testing.T) {
 					require.NotZero(t, dv)
 
 					assert.Equal(t, "Deployment", dv.Kind)
+				},
+			}
+		},
+		"uses default ServiceType = ClusterIP": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.NotZero(t, dv)
+
+					assert.Equal(t, corev1.ServiceTypeClusterIP, dv.ServiceType)
+				},
+			}
+		},
+		"can override ServiceType": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {
+					iv.ServiceType = ptr.To(corev1.ServiceTypeNodePort)
+				},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.NotZero(t, dv)
+
+					assert.Equal(t, corev1.ServiceTypeNodePort, dv.ServiceType)
+				},
+			}
+		},
+		"automatically overrides ServiceType if node port is specified on any port and service type is ClusterIP": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {
+					iv.Container.Ports = []schema.Port{
+						{
+							Port:     80,
+							NodePort: ptr.To(int32(31000)),
+						},
+					}
+				},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.NotZero(t, dv)
+
+					assert.Equal(t, corev1.ServiceTypeNodePort, dv.ServiceType)
+				},
+			}
+		},
+		"does not override ServiceType if node port is specified on any port and service type is not ClusterIP": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {
+					iv.ServiceType = ptr.To(corev1.ServiceTypeLoadBalancer)
+					iv.Container.Ports = []schema.Port{
+						{
+							Port:     80,
+							NodePort: ptr.To(int32(31000)),
+						},
+					}
+				},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.NotZero(t, dv)
+
+					assert.Equal(t, corev1.ServiceTypeLoadBalancer, dv.ServiceType)
 				},
 			}
 		},

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ProRocketeers/yoke-chart/schema"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
@@ -21,6 +22,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		Volumes:             input.Volumes,
 		Sidecars:            input.Sidecars,
 		ServiceAccount:      input.ServiceAccount,
+		ServiceType:         corev1.ServiceTypeClusterIP,
 		DB:                  input.DB,
 		Annotations:         input.Annotations,
 		PodAnnotations:      input.PodAnnotations,
@@ -50,6 +52,10 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		values.Kind = *input.Kind
 	}
 
+	if input.ServiceType != nil {
+		values.ServiceType = *input.ServiceType
+	}
+
 	if containers, err := getDeploymentContainers(input); err != nil {
 		return DeploymentValues{}, fmt.Errorf("error while preparing deployment containers: %v", err)
 	} else {
@@ -60,6 +66,17 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		return DeploymentValues{}, fmt.Errorf("error while preparing init containers: %v", err)
 	} else {
 		values.InitContainers = initContainers
+	}
+
+	// check for main deployment containers and if at least 1 of their ports has a NodePort, override the service type
+	for _, container := range values.Containers {
+		for _, port := range container.Ports {
+			// override only if service type is ClusterIP (if manually set to NodePort or LoadBalancer, that is allowed)
+			if port.NodePort != nil && values.ServiceType == corev1.ServiceTypeClusterIP {
+				values.ServiceType = corev1.ServiceTypeNodePort
+				break
+			}
+		}
 	}
 
 	if input.PreDeploymentJob != nil {

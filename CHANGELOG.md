@@ -14,6 +14,16 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.5.0] - 2026-03-22
+
+### :star: Added
+- `NodePort` Service support
+  - support for changing the main deployment's `Service` type - `serviceType` (default `ClusterIP`)
+  - ability to specify a `nodePort` on any port - `ports[].nodePort` (must be in the range **30000-32767** and not used by any other service)
+  - `serviceType` is automatically changed to `NodePort` if any port has `nodePort` specified and `serviceType` is not set or is `ClusterIP`
+- added small `Makefile` for convenience
+- added example of `networkPolicies` to [values.yaml](./values.yaml) from `1.4.0`
+
 ## [1.4.1] - 2026-03-18
 
 ### :pencil2: Changed
@@ -101,7 +111,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.1...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.5.0...HEAD
+[1.5.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.1...1.5.0
 [1.4.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.2.0...1.3.0
