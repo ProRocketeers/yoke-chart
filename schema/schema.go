@@ -52,9 +52,10 @@ type InputValues struct {
 	Labels         map[string]string `json:"labels,omitempty"`
 	PodLabels      map[string]string `json:"podLabels,omitempty"`
 
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty" validate:"dive"`
-	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
+	NodeSelector       map[string]string          `json:"nodeSelector,omitempty"`
+	Tolerations        []corev1.Toleration        `json:"tolerations,omitempty" validate:"dive"`
+	Affinity           *corev1.Affinity           `json:"affinity,omitempty"`
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
 	ExtraManifests []map[string]interface{} `json:"extraManifests,omitempty"`
 
@@ -107,6 +108,7 @@ type Container struct {
 	ReadinessProbe  *corev1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe   *corev1.Probe                `json:"livenessProbe,omitempty"`
 	Lifecycle       *corev1.Lifecycle            `json:"lifecycle,omitempty"`
+	SecurityContext *corev1.SecurityContext      `json:"securityContext,omitempty"`
 }
 
 type SecretMapping = map[string]*string
@@ -142,14 +144,15 @@ type HTTPRoute struct {
 type PreDeploymentJob struct {
 	Container `json:",inline"`
 
-	MainContainerName *string           `json:"mainContainerName,omitempty"`
-	InitContainers    []InitContainer   `json:"initContainers,omitempty" validate:"dive"`
-	Volumes           map[string]Volume `json:"volumes,omitempty" validate:"dive"`
-	Annotations       map[string]string `json:"annotations,omitempty"`
-	PodAnnotations    map[string]string `json:"podAnnotations,omitempty"`
-	Labels            map[string]string `json:"labels,omitempty"`
-	PodLabels         map[string]string `json:"podLabels,omitempty"`
-	PodMonitor        *PodMonitor       `json:"podMonitor"`
+	MainContainerName  *string                    `json:"mainContainerName,omitempty"`
+	InitContainers     []InitContainer            `json:"initContainers,omitempty" validate:"dive"`
+	Volumes            map[string]Volume          `json:"volumes,omitempty" validate:"dive"`
+	Annotations        map[string]string          `json:"annotations,omitempty"`
+	PodAnnotations     map[string]string          `json:"podAnnotations,omitempty"`
+	Labels             map[string]string          `json:"labels,omitempty"`
+	PodLabels          map[string]string          `json:"podLabels,omitempty"`
+	PodMonitor         *PodMonitor                `json:"podMonitor"`
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
 	JobSpec `json:",inline"`
 }
@@ -202,12 +205,13 @@ type Cronjob struct {
 	Volumes           map[string]Volume `json:"volumes,omitempty" validate:"dive"`
 	PodMonitor        *PodMonitor       `json:"podMonitor"`
 
-	CronJobAnnotations map[string]string `json:"cronJobAnnotations,omitempty"`
-	CronJobLabels      map[string]string `json:"cronJobLabels,omitempty"`
-	JobAnnotations     map[string]string `json:"jobAnnotations,omitempty"`
-	JobLabels          map[string]string `json:"jobLabels,omitempty"`
-	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
-	PodLabels          map[string]string `json:"podLabels,omitempty"`
+	CronJobAnnotations map[string]string          `json:"cronJobAnnotations,omitempty"`
+	CronJobLabels      map[string]string          `json:"cronJobLabels,omitempty"`
+	JobAnnotations     map[string]string          `json:"jobAnnotations,omitempty"`
+	JobLabels          map[string]string          `json:"jobLabels,omitempty"`
+	PodAnnotations     map[string]string          `json:"podAnnotations,omitempty"`
+	PodLabels          map[string]string          `json:"podLabels,omitempty"`
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
 	// some CronJobSpec fields
 	Suspend                    *bool                      `json:"suspend,omitempty"`

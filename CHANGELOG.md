@@ -14,6 +14,11 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.6.0] - 2026-04-14
+
+### :star: Added
+- added the possibility to specify `PodSecurityContext` (in case of main `Deployment`, `PreDeploymentJob` and `CronJobs`) and also on individual Container level - properties `podSecurityContext` and `securityContext` when applicable
+
 ## [1.5.0] - 2026-03-22
 
 ### :star: Added
@@ -111,7 +116,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.5.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.6.0...HEAD
+[1.6.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.5.0...1.6.0
 [1.5.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.1...1.5.0
 [1.4.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.3.0...1.4.0

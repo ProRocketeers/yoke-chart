@@ -31,6 +31,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		NodeSelector:        input.NodeSelector,
 		Tolerations:         input.Tolerations,
 		Affinity:            input.Affinity,
+		PodSecurityContext:  input.PodSecurityContext,
 		ConfigMaps:          input.ConfigMaps,
 		ExtraManifests:      []unstructured.Unstructured{},
 		ServiceMonitor:      input.ServiceMonitor,
@@ -158,13 +159,14 @@ func getPreDeploymentJob(input schema.InputValues) (PreDeploymentJob, error) {
 			Component:   input.Metadata.Component,
 			Environment: input.Metadata.Environment,
 		},
-		PodMonitor:     input.PreDeploymentJob.PodMonitor,
-		Volumes:        input.PreDeploymentJob.Volumes,
-		Annotations:    input.PreDeploymentJob.Annotations,
-		Labels:         input.PreDeploymentJob.Labels,
-		PodAnnotations: input.PreDeploymentJob.PodAnnotations,
-		PodLabels:      input.PreDeploymentJob.PodLabels,
-		JobSpec:        input.PreDeploymentJob.JobSpec,
+		PodMonitor:         input.PreDeploymentJob.PodMonitor,
+		Volumes:            input.PreDeploymentJob.Volumes,
+		Annotations:        input.PreDeploymentJob.Annotations,
+		Labels:             input.PreDeploymentJob.Labels,
+		PodAnnotations:     input.PreDeploymentJob.PodAnnotations,
+		PodLabels:          input.PreDeploymentJob.PodLabels,
+		PodSecurityContext: input.PreDeploymentJob.PodSecurityContext,
+		JobSpec:            input.PreDeploymentJob.JobSpec,
 	}
 
 	// init containers
@@ -194,10 +196,11 @@ func getCronjobs(input schema.InputValues) ([]Cronjob, error) {
 				Component:   input.Metadata.Component,
 				Environment: input.Metadata.Environment,
 			},
-			Name:       input.Cronjobs[i].Name,
-			Schedule:   input.Cronjobs[i].Schedule,
-			Volumes:    input.Cronjobs[i].Volumes,
-			PodMonitor: input.Cronjobs[i].PodMonitor,
+			Name:               input.Cronjobs[i].Name,
+			Schedule:           input.Cronjobs[i].Schedule,
+			Volumes:            input.Cronjobs[i].Volumes,
+			PodMonitor:         input.Cronjobs[i].PodMonitor,
+			PodSecurityContext: input.Cronjobs[i].PodSecurityContext,
 
 			CronJobAnnotations: input.Cronjobs[i].CronJobAnnotations,
 			CronJobLabels:      input.Cronjobs[i].CronJobLabels,
@@ -268,5 +271,6 @@ func convertContainer(container schema.Container, names ...*string) Container {
 		ReadinessProbe:  container.ReadinessProbe,
 		LivenessProbe:   container.LivenessProbe,
 		Lifecycle:       container.Lifecycle,
+		SecurityContext: container.SecurityContext,
 	}
 }

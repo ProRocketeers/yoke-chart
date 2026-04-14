@@ -38,6 +38,7 @@ func createPodSpec(podValuesExtractor PodValuesExtractor, values DeploymentValue
 		Affinity:           values.Affinity,
 		Tolerations:        values.Tolerations,
 		Volumes:            volumes,
+		SecurityContext:    podValues.PodSecurityContext,
 	}
 	return podSpec, nil
 }

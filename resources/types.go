@@ -41,9 +41,10 @@ type DeploymentValues struct {
 	Labels         map[string]string
 	PodLabels      map[string]string
 
-	NodeSelector map[string]string
-	Tolerations  []corev1.Toleration
-	Affinity     *corev1.Affinity
+	NodeSelector       map[string]string
+	Tolerations        []corev1.Toleration
+	Affinity           *corev1.Affinity
+	PodSecurityContext *corev1.PodSecurityContext
 
 	ExtraManifests []unstructured.Unstructured
 
@@ -72,6 +73,7 @@ type Container struct {
 	ReadinessProbe  *corev1.Probe
 	LivenessProbe   *corev1.Probe
 	Lifecycle       *corev1.Lifecycle
+	SecurityContext *corev1.SecurityContext
 }
 
 type Image struct {
@@ -82,27 +84,29 @@ type Image struct {
 }
 
 type PreDeploymentJob struct {
-	Metadata       Metadata
-	Container      Container
-	InitContainers []Container
-	Volumes        map[string]schema.Volume
-	Annotations    map[string]string
-	PodAnnotations map[string]string
-	Labels         map[string]string
-	PodLabels      map[string]string
-	PodMonitor     *schema.PodMonitor
+	Metadata           Metadata
+	Container          Container
+	InitContainers     []Container
+	Volumes            map[string]schema.Volume
+	Annotations        map[string]string
+	PodAnnotations     map[string]string
+	Labels             map[string]string
+	PodLabels          map[string]string
+	PodMonitor         *schema.PodMonitor
+	PodSecurityContext *corev1.PodSecurityContext
 
 	schema.JobSpec
 }
 
 type Cronjob struct {
-	Metadata       Metadata
-	Name           string
-	Schedule       string
-	Container      Container
-	InitContainers []Container
-	Volumes        map[string]schema.Volume
-	PodMonitor     *schema.PodMonitor
+	Metadata           Metadata
+	Name               string
+	Schedule           string
+	Container          Container
+	InitContainers     []Container
+	Volumes            map[string]schema.Volume
+	PodMonitor         *schema.PodMonitor
+	PodSecurityContext *corev1.PodSecurityContext
 
 	CronJobAnnotations map[string]string
 	CronJobLabels      map[string]string
@@ -131,11 +135,12 @@ type Cronjob struct {
 
 // common interface of the Pods from Deployment, Job and CronJobs
 type PodValues struct {
-	ImagePullSecrets []corev1.LocalObjectReference
-	InitContainers   []Container
-	Metadata         Metadata
-	Containers       []Container
-	Volumes          map[string]schema.Volume
+	ImagePullSecrets   []corev1.LocalObjectReference
+	InitContainers     []Container
+	Metadata           Metadata
+	Containers         []Container
+	Volumes            map[string]schema.Volume
+	PodSecurityContext *corev1.PodSecurityContext
 }
 
 type PodValuesExtractor interface {
@@ -162,33 +167,36 @@ func getPullSecrets(containerArrays ...[]Container) []corev1.LocalObjectReferenc
 func (v *DeploymentValues) GetPodValues() PodValues {
 	// pod values for the main deployment
 	return PodValues{
-		ImagePullSecrets: getPullSecrets(v.Containers, v.InitContainers),
-		InitContainers:   v.InitContainers,
-		Metadata:         v.Metadata,
-		Containers:       v.Containers,
-		Volumes:          v.Volumes,
+		ImagePullSecrets:   getPullSecrets(v.Containers, v.InitContainers),
+		InitContainers:     v.InitContainers,
+		Metadata:           v.Metadata,
+		Containers:         v.Containers,
+		Volumes:            v.Volumes,
+		PodSecurityContext: v.PodSecurityContext,
 	}
 }
 
 func (v *PreDeploymentJob) GetPodValues() PodValues {
 	// pod values for the pre deployment job
 	return PodValues{
-		ImagePullSecrets: getPullSecrets([]Container{v.Container}, v.InitContainers),
-		InitContainers:   v.InitContainers,
-		Metadata:         v.Metadata,
-		Containers:       []Container{v.Container},
-		Volumes:          v.Volumes,
+		ImagePullSecrets:   getPullSecrets([]Container{v.Container}, v.InitContainers),
+		InitContainers:     v.InitContainers,
+		Metadata:           v.Metadata,
+		Containers:         []Container{v.Container},
+		Volumes:            v.Volumes,
+		PodSecurityContext: v.PodSecurityContext,
 	}
 }
 
 func (v *Cronjob) GetPodValues() PodValues {
 	// you guessed it..
 	return PodValues{
-		ImagePullSecrets: getPullSecrets([]Container{v.Container}, v.InitContainers),
-		InitContainers:   v.InitContainers,
-		Metadata:         v.Metadata,
-		Containers:       []Container{v.Container},
-		Volumes:          v.Volumes,
+		ImagePullSecrets:   getPullSecrets([]Container{v.Container}, v.InitContainers),
+		InitContainers:     v.InitContainers,
+		Metadata:           v.Metadata,
+		Containers:         []Container{v.Container},
+		Volumes:            v.Volumes,
+		PodSecurityContext: v.PodSecurityContext,
 	}
 }
 
