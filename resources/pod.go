@@ -34,9 +34,9 @@ func createPodSpec(podValuesExtractor PodValuesExtractor, values DeploymentValue
 		InitContainers:     initContainers,
 		ServiceAccountName: serviceName(values.Metadata),
 		Containers:         containers,
-		NodeSelector:       values.NodeSelector,
-		Affinity:           values.Affinity,
-		Tolerations:        values.Tolerations,
+		NodeSelector:       podValues.SchedulingConfig.NodeSelector,
+		Affinity:           podValues.SchedulingConfig.Affinity,
+		Tolerations:        podValues.SchedulingConfig.Tolerations,
 		Volumes:            volumes,
 		SecurityContext:    podValues.PodSecurityContext,
 	}

@@ -119,9 +119,11 @@ func TestDeployment(t *testing.T) {
 			}
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.NodeSelector = nodeSelector
-					dv.Affinity = &affinity
-					dv.Tolerations = []corev1.Toleration{toleration}
+					dv.SchedulingConfig = schema.SchedulingConfig{
+						NodeSelector: nodeSelector,
+						Affinity:     &affinity,
+						Tolerations:  []corev1.Toleration{toleration},
+					}
 				},
 				Asserts: func(t *testing.T, d *appsv1.Deployment) {
 					require.Contains(t, d.Spec.Template.Spec.NodeSelector, "node")

@@ -80,7 +80,6 @@ func run() error {
 	}
 
 	jsons := []json.RawMessage{}
-	// return json.NewEncoder(os.Stdout).Encode(res)
 	encoder := k8sjson.NewSerializerWithOptions(
 		k8sjson.DefaultMetaFactory, nil, nil, k8sjson.SerializerOptions{Yaml: false, Strict: true},
 	)
@@ -92,7 +91,10 @@ func run() error {
 		jsons = append(jsons, bytes)
 	}
 
-	json.NewEncoder(os.Stdout).Encode(jsons)
+	err = json.NewEncoder(os.Stdout).Encode(jsons)
+	if err != nil {
+		return fmt.Errorf("error while encoding to stdout: %v", err)
+	}
 	return nil
 }
 

@@ -20,7 +20,6 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		HTTPRoute:           input.HTTPRoute,
 		NetworkPolicies:     input.NetworkPolicies,
 		Volumes:             input.Volumes,
-		Sidecars:            input.Sidecars,
 		ServiceAccount:      input.ServiceAccount,
 		ServiceType:         corev1.ServiceTypeClusterIP,
 		DB:                  input.DB,
@@ -28,9 +27,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		PodAnnotations:      input.PodAnnotations,
 		Labels:              input.Labels,
 		PodLabels:           input.PodLabels,
-		NodeSelector:        input.NodeSelector,
-		Tolerations:         input.Tolerations,
-		Affinity:            input.Affinity,
+		SchedulingConfig:    input.SchedulingConfig,
 		PodSecurityContext:  input.PodSecurityContext,
 		ConfigMaps:          input.ConfigMaps,
 		ExtraManifests:      []unstructured.Unstructured{},
@@ -135,7 +132,7 @@ func getInitContainers(input schema.InputValues) ([]Container, error) {
 }
 
 func validateAndSetSideContainerImage(targetImage, mainImage *schema.Image) error {
-	imageTagIsEmpty := targetImage.Tag == nil || strings.TrimSpace(*mainImage.Tag) == ""
+	imageTagIsEmpty := targetImage.Tag == nil || strings.TrimSpace(*targetImage.Tag) == ""
 	inheritTag := targetImage.InheritMainContainerTag != nil && *targetImage.InheritMainContainerTag
 	if !inheritTag && imageTagIsEmpty {
 		return fmt.Errorf("side container must have either `image.tag` set or `image.inheritMainContainerTag: true`")
@@ -166,6 +163,7 @@ func getPreDeploymentJob(input schema.InputValues) (PreDeploymentJob, error) {
 		PodAnnotations:     input.PreDeploymentJob.PodAnnotations,
 		PodLabels:          input.PreDeploymentJob.PodLabels,
 		PodSecurityContext: input.PreDeploymentJob.PodSecurityContext,
+		SchedulingConfig:   input.PreDeploymentJob.SchedulingConfig,
 		JobSpec:            input.PreDeploymentJob.JobSpec,
 	}
 
@@ -202,27 +200,14 @@ func getCronjobs(input schema.InputValues) ([]Cronjob, error) {
 			PodMonitor:         input.Cronjobs[i].PodMonitor,
 			PodSecurityContext: input.Cronjobs[i].PodSecurityContext,
 
-			CronJobAnnotations: input.Cronjobs[i].CronJobAnnotations,
-			CronJobLabels:      input.Cronjobs[i].CronJobLabels,
-			JobAnnotations:     input.Cronjobs[i].JobAnnotations,
-			JobLabels:          input.Cronjobs[i].JobLabels,
-			PodAnnotations:     input.Cronjobs[i].PodAnnotations,
-			PodLabels:          input.Cronjobs[i].PodLabels,
-
-			Suspend:                    input.Cronjobs[i].Suspend,
-			TimeZone:                   input.Cronjobs[i].TimeZone,
-			ConcurrencyPolicy:          input.Cronjobs[i].ConcurrencyPolicy,
-			StartingDeadlineSeconds:    input.Cronjobs[i].StartingDeadlineSeconds,
-			SuccessfulJobsHistoryLimit: input.Cronjobs[i].SuccessfulJobsHistoryLimit,
-			FailedJobsHistoryLimit:     input.Cronjobs[i].FailedJobsHistoryLimit,
-			ActiveDeadlineSeconds:      input.Cronjobs[i].ActiveDeadlineSeconds,
-			BackoffLimit:               input.Cronjobs[i].BackoffLimit,
-			CompletionMode:             input.Cronjobs[i].CompletionMode,
-			Completions:                input.Cronjobs[i].Completions,
-			Parallelism:                input.Cronjobs[i].Parallelism,
-			PodFailurePolicy:           input.Cronjobs[i].PodFailurePolicy,
-			Selector:                   input.Cronjobs[i].Selector,
-			TTLSecondsAfterFinished:    input.Cronjobs[i].TTLSecondsAfterFinished,
+			CronJobAnnotations:      input.Cronjobs[i].CronJobAnnotations,
+			CronJobLabels:           input.Cronjobs[i].CronJobLabels,
+			JobAnnotations:          input.Cronjobs[i].JobAnnotations,
+			JobLabels:               input.Cronjobs[i].JobLabels,
+			PodAnnotations:          input.Cronjobs[i].PodAnnotations,
+			PodLabels:               input.Cronjobs[i].PodLabels,
+			SchedulingConfig:        input.Cronjobs[i].SchedulingConfig,
+			CronJobAdditionalFields: input.Cronjobs[i].CronJobAdditionalFields,
 		}
 
 		// init containers

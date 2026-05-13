@@ -44,8 +44,8 @@ func commonLabels(metadata Metadata) map[string]string {
 
 func withCommonLabels(labels map[string]string, metadata Metadata) map[string]string {
 	dst := map[string]string{}
-	maps.Copy(dst, labels)
 	maps.Copy(dst, commonLabels(metadata))
+	maps.Copy(dst, labels)
 	return dst
 }
 

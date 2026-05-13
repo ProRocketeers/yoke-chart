@@ -52,15 +52,19 @@ type InputValues struct {
 	Labels         map[string]string `json:"labels,omitempty"`
 	PodLabels      map[string]string `json:"podLabels,omitempty"`
 
-	NodeSelector       map[string]string          `json:"nodeSelector,omitempty"`
-	Tolerations        []corev1.Toleration        `json:"tolerations,omitempty" validate:"dive"`
-	Affinity           *corev1.Affinity           `json:"affinity,omitempty"`
+	SchedulingConfig   `json:",inline"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
 	ExtraManifests []map[string]interface{} `json:"extraManifests,omitempty"`
 
 	Kind        *string                 `json:"kind,omitempty"`
 	StatefulSet *appsv1.StatefulSetSpec `json:"statefulSet,omitempty"`
+}
+
+type SchedulingConfig struct {
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty" validate:"dive"`
+	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
 }
 
 type Image struct {
@@ -154,7 +158,8 @@ type PreDeploymentJob struct {
 	PodMonitor         *PodMonitor                `json:"podMonitor"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
-	JobSpec `json:",inline"`
+	SchedulingConfig `json:",inline"`
+	JobSpec          `json:",inline"`
 }
 
 // k8s JobSpec, without the `template` field
@@ -213,6 +218,11 @@ type Cronjob struct {
 	PodLabels          map[string]string          `json:"podLabels,omitempty"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
+	SchedulingConfig        `json:",inline"`
+	CronJobAdditionalFields `json:",inline"`
+}
+
+type CronJobAdditionalFields struct {
 	// some CronJobSpec fields
 	Suspend                    *bool                      `json:"suspend,omitempty"`
 	TimeZone                   *string                    `json:"timeZone,omitempty"`

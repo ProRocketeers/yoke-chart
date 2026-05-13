@@ -14,6 +14,16 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+### :star: Added
+- possibility to specify `nodeSelector`, `tolerations` and `affinity` on individual job levels (`preDeploymentJob` and `cronjobs[]`)
+
+### :pencil2: Changed
+- order of merging labels is fixed, now user supplied labels have higher priority
+  - :warning: **WARNING:** overriding `app` label will pretty much break everything as it's used for selectors
+
+### :hammer_and_wrench: Fixed
+- random small fixes, unhandled errors, code simplification
+
 ## [1.6.0] - 2026-04-14
 
 ### :star: Added

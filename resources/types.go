@@ -3,11 +3,9 @@ package resources
 import (
 	"github.com/ProRocketeers/yoke-chart/schema"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -27,7 +25,6 @@ type DeploymentValues struct {
 	HTTPRoute           *schema.HTTPRoute
 	NetworkPolicies     map[string]networkingv1.NetworkPolicySpec
 	Volumes             map[string]schema.Volume
-	Sidecars            map[string]schema.Container
 	PreDeploymentJob    *PreDeploymentJob
 	ServiceAccount      *schema.ServiceAccount
 	DB                  *schema.Database
@@ -41,9 +38,7 @@ type DeploymentValues struct {
 	Labels         map[string]string
 	PodLabels      map[string]string
 
-	NodeSelector       map[string]string
-	Tolerations        []corev1.Toleration
-	Affinity           *corev1.Affinity
+	SchedulingConfig   schema.SchedulingConfig
 	PodSecurityContext *corev1.PodSecurityContext
 
 	ExtraManifests []unstructured.Unstructured
@@ -94,6 +89,7 @@ type PreDeploymentJob struct {
 	PodLabels          map[string]string
 	PodMonitor         *schema.PodMonitor
 	PodSecurityContext *corev1.PodSecurityContext
+	SchedulingConfig   schema.SchedulingConfig
 
 	schema.JobSpec
 }
@@ -114,23 +110,9 @@ type Cronjob struct {
 	JobLabels          map[string]string
 	PodAnnotations     map[string]string
 	PodLabels          map[string]string
+	SchedulingConfig   schema.SchedulingConfig
 
-	// some CronJobSpec fields
-	Suspend                    *bool
-	TimeZone                   *string
-	ConcurrencyPolicy          *batchv1.ConcurrencyPolicy
-	StartingDeadlineSeconds    *int64
-	SuccessfulJobsHistoryLimit *int32
-	FailedJobsHistoryLimit     *int32
-	// and some JobSpec fields
-	ActiveDeadlineSeconds   *int64
-	BackoffLimit            *int32
-	CompletionMode          *batchv1.CompletionMode
-	Completions             *int32
-	Parallelism             *int32
-	PodFailurePolicy        *batchv1.PodFailurePolicy
-	Selector                *metav1.LabelSelector
-	TTLSecondsAfterFinished *int32
+	schema.CronJobAdditionalFields
 }
 
 // common interface of the Pods from Deployment, Job and CronJobs
@@ -141,6 +123,7 @@ type PodValues struct {
 	Containers         []Container
 	Volumes            map[string]schema.Volume
 	PodSecurityContext *corev1.PodSecurityContext
+	SchedulingConfig   schema.SchedulingConfig
 }
 
 type PodValuesExtractor interface {
@@ -158,7 +141,7 @@ func getPullSecrets(containerArrays ...[]Container) []corev1.LocalObjectReferenc
 		}
 	}
 	ret := []corev1.LocalObjectReference{}
-	for secret := range pullSecretsMap {
+	for secret := range sortedMap(pullSecretsMap) {
 		ret = append(ret, corev1.LocalObjectReference{Name: secret})
 	}
 	return ret
@@ -173,6 +156,7 @@ func (v *DeploymentValues) GetPodValues() PodValues {
 		Containers:         v.Containers,
 		Volumes:            v.Volumes,
 		PodSecurityContext: v.PodSecurityContext,
+		SchedulingConfig:   v.SchedulingConfig,
 	}
 }
 
@@ -185,6 +169,7 @@ func (v *PreDeploymentJob) GetPodValues() PodValues {
 		Containers:         []Container{v.Container},
 		Volumes:            v.Volumes,
 		PodSecurityContext: v.PodSecurityContext,
+		SchedulingConfig:   v.SchedulingConfig,
 	}
 }
 
@@ -197,6 +182,7 @@ func (v *Cronjob) GetPodValues() PodValues {
 		Containers:         []Container{v.Container},
 		Volumes:            v.Volumes,
 		PodSecurityContext: v.PodSecurityContext,
+		SchedulingConfig:   v.SchedulingConfig,
 	}
 }
 
