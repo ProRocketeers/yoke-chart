@@ -31,10 +31,30 @@ func TestService(t *testing.T) {
 		"can override service type": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.ServiceType = corev1.ServiceTypeNodePort
+					dv.Service.Type = corev1.ServiceTypeNodePort
 				},
 				Asserts: func(t *testing.T, s *corev1.Service) {
 					assert.Equal(t, corev1.ServiceTypeNodePort, s.Spec.Type)
+				},
+			}
+		},
+		"can set service annotations": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Service.Annotations = map[string]string{"custom-annotation": "value"}
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Equal(t, map[string]string{"custom-annotation": "value"}, s.Annotations)
+				},
+			}
+		},
+		"can set service labels": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Service.Labels = map[string]string{"custom-label": "value"}
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Subset(t, s.Labels, map[string]string{"custom-label": "value"})
 				},
 			}
 		},

@@ -14,8 +14,14 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.7.0] - 2026-06-10
+
 ### :star: Added
 - possibility to specify `nodeSelector`, `tolerations` and `affinity` on individual job levels (`preDeploymentJob` and `cronjobs[]`)
+- you can now add annotations and labels to the main deployment's `Service` - `serviceConfig.(labels | annotations)`
+
+### :boom: BREAKING CHANGE
+- field `serviceType` was moved into `serviceConfig.type`. Behavior otherwise unchanged
 
 ### :pencil2: Changed
 - order of merging labels is fixed, now user supplied labels have higher priority
@@ -126,7 +132,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.6.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.7.0...HEAD
+[1.7.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.5.0...1.6.0
 [1.5.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.1...1.5.0
 [1.4.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.0...1.4.1

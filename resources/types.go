@@ -31,7 +31,7 @@ type DeploymentValues struct {
 	Cronjobs            []Cronjob
 	ConfigMaps          map[string]map[string]string
 	ServiceMonitor      *schema.ServiceMonitor
-	ServiceType         corev1.ServiceType
+	Service             ServiceConfig
 
 	Annotations    map[string]string
 	PodAnnotations map[string]string
@@ -52,6 +52,12 @@ type Metadata struct {
 	Service     string
 	Component   string
 	Environment string
+}
+
+type ServiceConfig struct {
+	Type        corev1.ServiceType
+	Annotations map[string]string
+	Labels      map[string]string
 }
 
 type Container struct {

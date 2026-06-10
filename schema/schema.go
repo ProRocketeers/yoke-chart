@@ -45,7 +45,7 @@ type InputValues struct {
 	ConfigMaps          map[string]map[string]string              `json:"configMaps"`
 	ServiceMonitor      *ServiceMonitor                           `json:"serviceMonitor"`
 
-	ServiceType *corev1.ServiceType `json:"serviceType"`
+	ServiceConfig *ServiceConfig `json:"serviceConfig,omitempty"`
 
 	Annotations    map[string]string `json:"annotations,omitempty"`
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
@@ -239,6 +239,12 @@ type CronJobAdditionalFields struct {
 	PodFailurePolicy        *batchv1.PodFailurePolicy `json:"podFailurePolicy,omitempty"`
 	Selector                *metav1.LabelSelector     `json:"selector,omitempty"`
 	TTLSecondsAfterFinished *int32                    `json:"ttlSecondsAfterFinished,omitempty"`
+}
+
+type ServiceConfig struct {
+	Type        *corev1.ServiceType `json:"type,omitempty"`
+	Annotations map[string]string   `json:"annotations,omitempty"`
+	Labels      map[string]string   `json:"labels,omitempty"`
 }
 
 type ServiceMonitor struct {

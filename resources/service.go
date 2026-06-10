@@ -17,12 +17,16 @@ func CreateService(values DeploymentValues) (bool, ResourceCreator) {
 				Kind:       "Service",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceName(values.Metadata),
-				Namespace: values.Metadata.Namespace,
+				Name:        serviceName(values.Metadata),
+				Namespace:   values.Metadata.Namespace,
+				Annotations: values.Service.Annotations,
 				Labels: func() map[string]string {
 					labels := commonLabels(values.Metadata)
 					if values.ServiceMonitor != nil && *values.ServiceMonitor.Enabled {
 						labels["prometheus-scrape"] = "true"
+					}
+					for k, v := range values.Service.Labels {
+						labels[k] = v
 					}
 					return labels
 				}(),
@@ -31,7 +35,7 @@ func CreateService(values DeploymentValues) (bool, ResourceCreator) {
 				Selector: map[string]string{
 					"app": serviceName(values.Metadata),
 				},
-				Type:  values.ServiceType,
+				Type:  values.Service.Type,
 				Ports: getServicePorts(values),
 			},
 		}

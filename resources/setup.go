@@ -21,7 +21,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		NetworkPolicies:     input.NetworkPolicies,
 		Volumes:             input.Volumes,
 		ServiceAccount:      input.ServiceAccount,
-		ServiceType:         corev1.ServiceTypeClusterIP,
+		Service:             ServiceConfig{Type: corev1.ServiceTypeClusterIP},
 		DB:                  input.DB,
 		Annotations:         input.Annotations,
 		PodAnnotations:      input.PodAnnotations,
@@ -50,8 +50,12 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		values.Kind = *input.Kind
 	}
 
-	if input.ServiceType != nil {
-		values.ServiceType = *input.ServiceType
+	if input.ServiceConfig != nil {
+		if input.ServiceConfig.Type != nil {
+			values.Service.Type = *input.ServiceConfig.Type
+		}
+		values.Service.Annotations = input.ServiceConfig.Annotations
+		values.Service.Labels = input.ServiceConfig.Labels
 	}
 
 	if containers, err := getDeploymentContainers(input); err != nil {
@@ -70,8 +74,8 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 	for _, container := range values.Containers {
 		for _, port := range container.Ports {
 			// override only if service type is ClusterIP (if manually set to NodePort or LoadBalancer, that is allowed)
-			if port.NodePort != nil && values.ServiceType == corev1.ServiceTypeClusterIP {
-				values.ServiceType = corev1.ServiceTypeNodePort
+			if port.NodePort != nil && values.Service.Type == corev1.ServiceTypeClusterIP {
+				values.Service.Type = corev1.ServiceTypeNodePort
 				break
 			}
 		}

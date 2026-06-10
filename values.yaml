@@ -48,9 +48,12 @@ ports:
     # must be in the range of 30000 - 32767 and not used by any other Service port
     nodePort: 31000
 
-# `serviceType` - changes the main deployment's Service type. OPTIONAL - defaults to ClusterIP
-# NOTE: if any port has `nodePort` specified, and `serviceType: ClusterIP` or empty, then this is automatically overridden to `NodePort`
-serviceType: ClusterIP
+serviceConfig:
+  # `serviceConfig.type` - changes the main deployment's Service type. OPTIONAL - defaults to ClusterIP
+  # NOTE: if any port has `nodePort` specified, and `serviceConfig.type: ClusterIP` or empty, then this is automatically overridden to `NodePort`
+  type: ClusterIP
+  annotations: {}
+  labels: {}
 
 # Environment variables
 # `envs` - key-value pairs of literal environment values. OPTIONAL

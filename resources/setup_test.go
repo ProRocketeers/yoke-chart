@@ -47,20 +47,20 @@ func TestSetup(t *testing.T) {
 					require.Nil(t, err)
 					require.NotZero(t, dv)
 
-					assert.Equal(t, corev1.ServiceTypeClusterIP, dv.ServiceType)
+					assert.Equal(t, corev1.ServiceTypeClusterIP, dv.Service.Type)
 				},
 			}
 		},
 		"can override ServiceType": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(iv *schema.InputValues) {
-					iv.ServiceType = ptr.To(corev1.ServiceTypeNodePort)
+					iv.ServiceConfig = &schema.ServiceConfig{Type: ptr.To(corev1.ServiceTypeNodePort)}
 				},
 				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
 					require.Nil(t, err)
 					require.NotZero(t, dv)
 
-					assert.Equal(t, corev1.ServiceTypeNodePort, dv.ServiceType)
+					assert.Equal(t, corev1.ServiceTypeNodePort, dv.Service.Type)
 				},
 			}
 		},
@@ -78,14 +78,14 @@ func TestSetup(t *testing.T) {
 					require.Nil(t, err)
 					require.NotZero(t, dv)
 
-					assert.Equal(t, corev1.ServiceTypeNodePort, dv.ServiceType)
+					assert.Equal(t, corev1.ServiceTypeNodePort, dv.Service.Type)
 				},
 			}
 		},
 		"does not override ServiceType if node port is specified on any port and service type is not ClusterIP": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(iv *schema.InputValues) {
-					iv.ServiceType = ptr.To(corev1.ServiceTypeLoadBalancer)
+					iv.ServiceConfig = &schema.ServiceConfig{Type: ptr.To(corev1.ServiceTypeLoadBalancer)}
 					iv.Container.Ports = []schema.Port{
 						{
 							Port:     80,
@@ -97,7 +97,7 @@ func TestSetup(t *testing.T) {
 					require.Nil(t, err)
 					require.NotZero(t, dv)
 
-					assert.Equal(t, corev1.ServiceTypeLoadBalancer, dv.ServiceType)
+					assert.Equal(t, corev1.ServiceTypeLoadBalancer, dv.Service.Type)
 				},
 			}
 		},
