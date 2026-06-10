@@ -14,6 +14,40 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.8.0] - 2026-06-10
+
+### :boom: BREAKING CHANGE
+- extended creating of `HTTPRoutes`
+  - you can now create multiple HTTPRoutes - `httpRoute` became `httpRoutes`
+  - `httpRoute.enabled` got removed - now it's assumed if you specify it, you want to create it
+  - the remaining shape of the configuration did not change
+  - :warning: **How to migrate**
+    - wrap your existing `httpRoute` config into a descriptive name, like `main`
+    - change `httpRoute` to `httpRoutes`
+    - **before**:
+      ```yaml
+      httpRoute:
+        enabled: true
+        parentRefs:
+          - ...
+        hostnames:
+          - ...
+        rules:
+          - ...
+      ```
+    - **after**:
+      ```yaml
+      httpRoutes:
+        main:
+          parentRefs:
+            - ...
+          hostnames:
+            - ...
+          rules:
+            - ...
+      ```
+
+
 ## [1.7.0] - 2026-06-10
 
 ### :star: Added
@@ -132,7 +166,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.7.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.0...HEAD
+[1.8.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.5.0...1.6.0
 [1.5.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.4.1...1.5.0

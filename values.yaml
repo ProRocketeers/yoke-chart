@@ -233,31 +233,31 @@ ingress:
   tls: []
   # ... rest of the Ingress spec, like `ingressClassName`
 
-# `httpRoute` - Gateway API HTTPRoute configuration. OPTIONAL
-httpRoute:
-  # `httpRoute.enabled` - OPTIONAL - default `false`
-  enabled: true
-  annotations: {}
-  labels: {}
-  # ... rest of the HTTPRoute spec
-  parentRefs:
-    - namespace: foo
-      name: my-gateway
-  hostnames:
-    - my-service.prorocketeers.com
-  rules:
-    - matches:
-        - path:
-            value: /
-      filters:
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            add:
-              - name: my-header
-                value: foo
-      backendRefs:
-        - name: my-service2
-          port: 8080
+# `httpRoutes` - Gateway API HTTPRoute configuration. OPTIONAL
+httpRoutes:
+  # descriptive name of a given HTTPRoute - will become a part of the resource name
+  main:
+    annotations: {}
+    labels: {}
+    # ... rest of the HTTPRoute spec
+    parentRefs:
+      - namespace: foo
+        name: my-gateway
+    hostnames:
+      - my-service.prorocketeers.com
+    rules:
+      - matches:
+          - path:
+              value: /
+        filters:
+          - type: RequestHeaderModifier
+            requestHeaderModifier:
+              add:
+                - name: my-header
+                  value: foo
+        backendRefs:
+          - name: my-service2
+            port: 8080
 
 # `volumes` - configuration of Volumes to be potentially created and mounted into Containers
 volumes:

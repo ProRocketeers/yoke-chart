@@ -22,7 +22,7 @@ type DeploymentValues struct {
 	PodDisruptionBudget *policyv1.PodDisruptionBudgetSpec
 	InitContainers      []Container
 	Ingress             *schema.Ingress
-	HTTPRoute           *schema.HTTPRoute
+	HTTPRoutes          map[string]schema.HTTPRoute
 	NetworkPolicies     map[string]networkingv1.NetworkPolicySpec
 	Volumes             map[string]schema.Volume
 	PreDeploymentJob    *PreDeploymentJob

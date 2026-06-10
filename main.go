@@ -59,7 +59,7 @@ func run() error {
 		resources.CreateMainWorkload,
 		resources.CreateService,
 		resources.CreateIngress,
-		resources.CreateHttpRoute,
+		resources.CreateHttpRoutes,
 		resources.CreateNetworkPolicies,
 		resources.CreateServiceAccount,
 		resources.CreatePVCs,

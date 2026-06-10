@@ -34,7 +34,7 @@ type InputValues struct {
 	PodDisruptionBudget *policyv1.PodDisruptionBudgetSpec         `json:"podDisruptionBudget,omitempty"`
 	InitContainers      []InitContainer                           `json:"initContainers,omitempty" validate:"dive"`
 	Ingress             *Ingress                                  `json:"ingress,omitempty"`
-	HTTPRoute           *HTTPRoute                                `json:"httpRoute,omitempty"`
+	HTTPRoutes          map[string]HTTPRoute                      `json:"httpRoutes,omitempty" validate:"dive"`
 	NetworkPolicies     map[string]networkingv1.NetworkPolicySpec `json:"networkPolicies"`
 	Volumes             map[string]Volume                         `json:"volumes,omitempty" validate:"dive"`
 	Sidecars            map[string]Container                      `json:"sidecars,omitempty" validate:"dive"`
@@ -138,7 +138,6 @@ type Ingress struct {
 }
 
 type HTTPRoute struct {
-	Enabled     *bool             `json:"enabled" validate:"required"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 
