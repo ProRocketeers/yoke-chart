@@ -14,6 +14,21 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.8.1] - 2026-06-29
+
+### :pencil2: Changed
+- fixed the implementation of `httpRoutes` - now they automatically fill in the defaults for certain fields in `HTTPRouteSpec`
+  - this changes nothing for values already specified, but clears up an unwanted diff in ArgoCD that was missing these values (they are otherwise added with admission webhooks)
+  - affected fields (all scoped in `httpRoutes.*.`:
+    - `parentRefs[].group` - default `gateway.networking.k8s.io`
+    - `parentRefs[].kind` - default `Gateway`
+    - `rules[].matches[].path.type` - default `PathPrefix`
+    - `rules[].matches[].path.value` - default `/`
+    - `rules[].backendRefs[].group` - default `""` (core API group)
+    - `rules[].backendRefs[].kind` - default `Service`
+    - `rules[].backendRefs[].weight` - default `1`
+  - if your values for these properties are equal to these defaults, they can be safely removed from values
+
 ## [1.8.0] - 2026-06-10
 
 ### :boom: BREAKING CHANGE
@@ -166,7 +181,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.1...HEAD
+[1.8.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.0...1.8.1
 [1.8.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.5.0...1.6.0
