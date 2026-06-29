@@ -28,6 +28,7 @@ For clarity we use following emoji for the changes:
     - `rules[].backendRefs[].kind` - default `Service`
     - `rules[].backendRefs[].weight` - default `1`
   - if your values for these properties are equal to these defaults, they can be safely removed from values
+- _(internal)_ split the schema file into multiple files, so it's easier to maintain
 
 ## [1.8.0] - 2026-06-10
 
