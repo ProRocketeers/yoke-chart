@@ -123,6 +123,96 @@ func TestMain(t *testing.T) {
 				assert.Error(t, err)
 			},
 		},
+		"passes httpRoute (singular) alone": {
+			Input: `
+        namespace: foo
+        service: foo
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        httpRoute:
+          parentRefs:
+            - name: prod-gateway
+          hostnames:
+            - myapp.example.com
+          rules:
+            - backendRefs:
+                - name: myapp
+                  port: 8080
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.NoError(t, err)
+				assert.NotNil(t, iv.HTTPRoute)
+				assert.Nil(t, iv.HTTPRoutes)
+			},
+		},
+		"passes httpRoutes (plural) alone": {
+			Input: `
+        namespace: foo
+        service: foo
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        httpRoutes:
+          public:
+            parentRefs:
+              - name: prod-gateway
+            hostnames:
+              - api.example.com
+            rules:
+              - backendRefs:
+                  - name: myapp
+                    port: 8080
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.NoError(t, err)
+				assert.Nil(t, iv.HTTPRoute)
+				assert.Contains(t, iv.HTTPRoutes, "public")
+			},
+		},
+		"fails when both httpRoute and httpRoutes are set": {
+			Input: `
+        namespace: foo
+        service: foo
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        httpRoute:
+          parentRefs:
+            - name: prod-gateway
+          hostnames:
+            - myapp.example.com
+          rules:
+            - backendRefs:
+                - name: myapp
+                  port: 8080
+        httpRoutes:
+          public:
+            parentRefs:
+              - name: prod-gateway
+            hostnames:
+              - api.example.com
+            rules:
+              - backendRefs:
+                  - name: myapp
+                    port: 8080
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.Error(t, err)
+			},
+		},
 	}
 
 	for testName, tc := range cases {

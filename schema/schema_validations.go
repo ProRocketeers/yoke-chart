@@ -14,6 +14,11 @@ func CustomValidations(values InputValues) error {
 	if err := validateNodePortRange(values); err != nil {
 		return err
 	}
+
+	// 3. HTTPRoute configuration is mutually exclusive - either `httpRoute` or `httpRoutes`, not both
+	if err := validateExclusiveHttpRoutes(values); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -36,6 +41,13 @@ func validateNodePortRange(values InputValues) error {
 				return fmt.Errorf("node port on port %d of sidecar %s must be between 30000 and 32767", port.Port, name)
 			}
 		}
+	}
+	return nil
+}
+
+func validateExclusiveHttpRoutes(values InputValues) error {
+	if values.HTTPRoute != nil && len(values.HTTPRoutes) > 0 {
+		return fmt.Errorf("HTTPRoute configuration is mutually exclusive - either `httpRoute` or `httpRoutes`, not both")
 	}
 	return nil
 }

@@ -14,6 +14,15 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.8.2] - 2026-06-30
+
+### :pencil2: Changed
+- partially reverted the breaking change introduced in **1.8.0** - its quality of life upgrade was not worth breaking the backward compatibility
+  - introduced an adapter between old `httpRoute` values and the new `httpRoutes` values
+  - `httpRoute` can now still be used, it will now behave as if it was `httpRoutes.main`
+    - this means that it will change the previous HTTPRoute name, from `{service}--{component}--{env}` to `{service}--{component}--{env}-main`, with the same body
+  - **both fields are now mutually exclusive** - it is assumed that if you want more routes, you will migrate to `httpRoutes`
+
 ## [1.8.1] - 2026-06-29
 
 ### :pencil2: Changed
@@ -182,7 +191,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.1...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.2...HEAD
+[1.8.2]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.1...1.8.2
 [1.8.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.0...1.8.1
 [1.8.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.6.0...1.7.0

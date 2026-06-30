@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 func TestSetup(t *testing.T) {
@@ -415,6 +416,83 @@ func TestSetup(t *testing.T) {
 				},
 				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
 					assert.NotNil(t, err)
+				},
+			}
+		},
+		"httpRoute (singular) is adapted to httpRoutes map under 'main' key": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {
+					iv.HTTPRoute = &schema.HTTPRoute{
+						HTTPRouteSpec: gatewayv1.HTTPRouteSpec{
+							CommonRouteSpec: gatewayv1.CommonRouteSpec{
+								ParentRefs: []gatewayv1.ParentReference{{Name: "prod-gateway"}},
+							},
+							Hostnames: []gatewayv1.Hostname{"myapp.example.com"},
+							Rules: []gatewayv1.HTTPRouteRule{
+								{
+									BackendRefs: []gatewayv1.HTTPBackendRef{
+										{BackendRef: gatewayv1.BackendRef{
+											BackendObjectReference: gatewayv1.BackendObjectReference{
+												Name: "myapp",
+												Port: ptr.To(gatewayv1.PortNumber(8080)),
+											},
+										}},
+									},
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.Contains(t, dv.HTTPRoutes, "main")
+					assert.Equal(t, []gatewayv1.Hostname{"myapp.example.com"}, dv.HTTPRoutes["main"].Hostnames)
+					assert.Equal(t, gatewayv1.ObjectName("prod-gateway"), dv.HTTPRoutes["main"].ParentRefs[0].Name)
+				},
+			}
+		},
+		"httpRoutes (plural) is passed through directly": func() CaseConfig {
+			backendRef := gatewayv1.HTTPBackendRef{BackendRef: gatewayv1.BackendRef{
+				BackendObjectReference: gatewayv1.BackendObjectReference{
+					Name: "myapp",
+					Port: ptr.To(gatewayv1.PortNumber(8080)),
+				},
+			}}
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {
+					iv.HTTPRoutes = map[string]schema.HTTPRoute{
+						"public": {
+							HTTPRouteSpec: gatewayv1.HTTPRouteSpec{
+								CommonRouteSpec: gatewayv1.CommonRouteSpec{
+									ParentRefs: []gatewayv1.ParentReference{{Name: "prod-gateway"}},
+								},
+								Hostnames: []gatewayv1.Hostname{"api.example.com"},
+								Rules:     []gatewayv1.HTTPRouteRule{{BackendRefs: []gatewayv1.HTTPBackendRef{backendRef}}},
+							},
+						},
+						"internal": {
+							HTTPRouteSpec: gatewayv1.HTTPRouteSpec{
+								Hostnames: []gatewayv1.Hostname{"api.internal.svc.cluster.local"},
+								Rules:     []gatewayv1.HTTPRouteRule{{BackendRefs: []gatewayv1.HTTPBackendRef{backendRef}}},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					require.Contains(t, dv.HTTPRoutes, "public")
+					require.Contains(t, dv.HTTPRoutes, "internal")
+					assert.Equal(t, []gatewayv1.Hostname{"api.example.com"}, dv.HTTPRoutes["public"].Hostnames)
+					assert.Equal(t, []gatewayv1.Hostname{"api.internal.svc.cluster.local"}, dv.HTTPRoutes["internal"].Hostnames)
+				},
+			}
+		},
+		"nil httpRoute and empty httpRoutes result in empty HTTPRoutes": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					assert.Empty(t, dv.HTTPRoutes)
 				},
 			}
 		},

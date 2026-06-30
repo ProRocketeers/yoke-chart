@@ -17,7 +17,7 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		Strategy:            input.Strategy,
 		PodDisruptionBudget: input.PodDisruptionBudget,
 		Ingress:             input.Ingress,
-		HTTPRoutes:          input.HTTPRoutes,
+		HTTPRoutes:          resolveHttpRoutes(input),
 		NetworkPolicies:     input.NetworkPolicies,
 		Volumes:             input.Volumes,
 		ServiceAccount:      input.ServiceAccount,
@@ -102,6 +102,16 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 	}
 
 	return values, nil
+}
+
+func resolveHttpRoutes(input schema.InputValues) map[string]schema.HTTPRoute {
+	// validated to be mutually exclusive
+	if input.HTTPRoute != nil {
+		return map[string]schema.HTTPRoute{
+			"main": *input.HTTPRoute,
+		}
+	}
+	return input.HTTPRoutes
 }
 
 func getDeploymentContainers(input schema.InputValues) ([]Container, error) {
