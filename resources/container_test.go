@@ -285,9 +285,9 @@ func TestContainer(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"my-volume": {
 							Type: schema.VolumeTypeStandardTmpfs,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"init-container": {
-									ContainerPath: "/my-volume",
+									{ContainerPath: "/my-volume"},
 								},
 							},
 							// empty, but fails the test without it

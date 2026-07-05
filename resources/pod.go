@@ -10,6 +10,11 @@ import (
 
 func createPodSpec(podValuesExtractor PodValuesExtractor, values DeploymentValues) (corev1.PodSpec, error) {
 	podValues := podValuesExtractor.GetPodValues()
+
+	if err := validateVolumeMountTargets(podValues); err != nil {
+		return corev1.PodSpec{}, err
+	}
+
 	initContainers, containers := []corev1.Container{}, []corev1.Container{}
 	for _, initContainer := range podValues.InitContainers {
 		if container, err := createContainer(initContainer, podValues); err != nil {
@@ -41,6 +46,27 @@ func createPodSpec(podValuesExtractor PodValuesExtractor, values DeploymentValue
 		SecurityContext:    podValues.PodSecurityContext,
 	}
 	return podSpec, nil
+}
+
+// validateVolumeMountTargets catches typo'd container names in a volume's `mounts` before they
+// silently become a volume that's attached to the Pod but never actually mounted anywhere
+func validateVolumeMountTargets(podValues PodValues) error {
+	containerNames := map[string]bool{}
+	for _, container := range podValues.Containers {
+		containerNames[container.Name] = true
+	}
+	for _, container := range podValues.InitContainers {
+		containerNames[container.Name] = true
+	}
+
+	for volumeName, volume := range sortedMap(podValues.Volumes) {
+		for containerName := range sortedMap(volume.Mounts) {
+			if !containerNames[containerName] {
+				return fmt.Errorf("volume '%v' has a mount for unknown container '%v'", volumeName, containerName)
+			}
+		}
+	}
+	return nil
 }
 
 func prepareVolumes(volumes map[string]schema.Volume, metadata Metadata) ([]corev1.Volume, error) {

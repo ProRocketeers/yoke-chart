@@ -265,14 +265,26 @@ volumes:
   # key-value pairs, where key is the volume name (lowercase-kebab-cased), value is the configuration
   standard-volume:
     # `volume.type` - default `tmpfs` in-memory temporary volume (for small volume of data) or `local` for on-disk temporary volume (for larger volume of data). OPTIONAL
-    type: tmpfs 
+    type: tmpfs
     # `volume.mounts` - key-value pairs, where key is Container name (`<main-container-name>`, `<sidecar-name>` or `<init container name>`) and value describes where to mount the volume
     mounts:
-      containerName: 
-        # `volume.mounts.volumePath` - subpath within the volume. OPTIONAL - default null (mounts the entire volume)
+      # can be either a single mount (object)
+      containerName:
+        # `volume.mounts.volumePath` - subpath within the volume, mounted as Kubernetes' `subPath`. OPTIONAL - default null (mounts the entire volume)
         volumePath: ''
         # `volume.mounts.containerPath` - where to mount the volume
         containerPath: ''
+        # `volume.mounts.readOnly` - overrides the default read-only behavior for this mount
+        # (defaults to `true` for secret/configMap/some raw types, and `false` otherwise). OPTIONAL
+        readOnly: false
+        # `volume.mounts.mountPropagation` - overrides the default mount propagation for this mount
+        # (defaults to unset for read-only mounts, `HostToContainer` otherwise). One of `None`, `HostToContainer`, `Bidirectional`. OPTIONAL
+        mountPropagation: HostToContainer
+      # or multiple mounts (list of objects)
+      anotherContainer:
+        - containerPath: /foo
+        - containerPath: /bar
+          volumePath: bar
   raw-volume:
     # Raw volume specification as described by Kubernetes
     type: raw
@@ -315,10 +327,12 @@ volumes:
     mode: 0400
     # `volume.secretName` - name of the Kubernetes secret to mount. Must exist beforehand
     secretName: secretName
-    mounts: 
-      containerName: 
-        # no volumePath this time
+    mounts:
+      containerName:
         containerPath: ''
+        # `volumePath` also works here now, e.g. to mount a single secret key at an exact
+        # path (via `subPath`) without exposing the rest of the secret's contents
+        volumePath: ''
     # `volume.items` - allows the user to specify which secret keys to mount. If not specified, all secret keys will be mounted.
     items:
       # filePath = key
@@ -330,10 +344,12 @@ volumes:
     mode: 0400
     # `volume.configMapName` - name of the Kubernetes ConfigMap to mount. Must exist beforehand
     configMapName: configMapName
-    mounts: 
-      containerName: 
-        # no volumePath this time
+    mounts:
+      containerName:
         containerPath: ''
+        # `volumePath` also works here now, e.g. to mount a single configMap key at an exact
+        # path (via `subPath`) without exposing the rest of the configMap's contents
+        volumePath: ''
     # `volume.items` - allows the user to specify which configmap keys to mount. If not specified, all keys will be mounted.
     items:
       # filePath = key

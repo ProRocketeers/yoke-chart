@@ -140,9 +140,9 @@ func TestDeployment(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"my-secret-volume": {
 							Type: schema.VolumeTypeSecret,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/secret",
+									{ContainerPath: "/secret"},
 								},
 							},
 							Variant: schema.SecretVolume{
@@ -170,15 +170,42 @@ func TestDeployment(t *testing.T) {
 				},
 			}
 		},
+		"subPath places a single secret key at an exact path without exposing the rest of the secret": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Volumes = map[string]schema.Volume{
+						"payments-api-tls": {
+							Type: schema.VolumeTypeSecret,
+							Mounts: map[string]schema.VolumeMountList{
+								"main": {
+									{ContainerPath: "/etc/ssl/certs/payments-api.crt", VolumePath: ptr.To("tls.crt")},
+								},
+							},
+							Variant: schema.SecretVolume{
+								SecretName: "payments-api-tls",
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					partialContains(t, d.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+						Name:      "payments-api-tls",
+						MountPath: "/etc/ssl/certs/payments-api.crt",
+						SubPath:   "tls.crt",
+						ReadOnly:  true,
+					}, cmp.Options{})
+				},
+			}
+		},
 		"properly renders configmap volume, including items": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
 					dv.Volumes = map[string]schema.Volume{
 						"my-cm-volume": {
 							Type: schema.VolumeTypeConfigMap,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/cm",
+									{ContainerPath: "/cm"},
 								},
 							},
 							Variant: schema.ConfigMapVolume{
@@ -208,15 +235,67 @@ func TestDeployment(t *testing.T) {
 				},
 			}
 		},
-		"properly renders raw volume": func() CaseConfig {
-			volumeName := "my-raw-volume"
+		"supports mounting the same volume into a container more than once, at different subPaths": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Volumes = map[string]schema.Volume{
+						"payments-api-config": {
+							Type: schema.VolumeTypeConfigMap,
+							Mounts: map[string]schema.VolumeMountList{
+								"main": {
+									{ContainerPath: "/etc/payments-api/app.yaml", VolumePath: ptr.To("app.yaml")},
+									{ContainerPath: "/etc/payments-api/logging.yaml", VolumePath: ptr.To("logging.yaml")},
+								},
+							},
+							Variant: schema.ConfigMapVolume{
+								ConfigMapName: "payments-api-config",
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					mounts := d.Spec.Template.Spec.Containers[0].VolumeMounts
+					require.Len(t, mounts, 2)
+					assert.Contains(t, mounts, corev1.VolumeMount{
+						Name:      "payments-api-config",
+						MountPath: "/etc/payments-api/app.yaml",
+						SubPath:   "app.yaml",
+						ReadOnly:  true,
+					})
+					assert.Contains(t, mounts, corev1.VolumeMount{
+						Name:      "payments-api-config",
+						MountPath: "/etc/payments-api/logging.yaml",
+						SubPath:   "logging.yaml",
+						ReadOnly:  true,
+					})
+				},
+			}
+		},
+		"properly renders raw volume (eg projected)": func() CaseConfig {
+			// `raw` is the escape hatch for volume sources without a dedicated type of their own -
+			// a projected volume (merging a TLS Secret and an app ConfigMap into one mount) is a
+			// realistic example of that, and it should default to read-only just like `secret`/`configMap` do
+			volumeName := "merged-app-config"
 			spec := corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: volumeName,
-					},
-					Items: []corev1.KeyToPath{
-						{Key: "config-file", Path: "./config-file"},
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "app-tls"},
+								Items: []corev1.KeyToPath{
+									{Key: "tls.crt", Path: "tls/tls.crt"},
+									{Key: "tls.key", Path: "tls/tls.key"},
+								},
+							},
+						},
+						{
+							ConfigMap: &corev1.ConfigMapProjection{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "app-config"},
+								Items: []corev1.KeyToPath{
+									{Key: "app.yaml", Path: "config/app.yaml"},
+								},
+							},
+						},
 					},
 				},
 			}
@@ -225,9 +304,9 @@ func TestDeployment(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						volumeName: {
 							Type: schema.VolumeTypeRaw,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/raw",
+									{ContainerPath: "/etc/app/merged"},
 								},
 							},
 							Variant: schema.RawVolume{
@@ -242,10 +321,9 @@ func TestDeployment(t *testing.T) {
 						VolumeSource: spec,
 					})
 					assert.Contains(t, d.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-						Name:             volumeName,
-						MountPath:        "/raw",
-						ReadOnly:         false,
-						MountPropagation: ptr.To(corev1.MountPropagationHostToContainer),
+						Name:      volumeName,
+						MountPath: "/etc/app/merged",
+						ReadOnly:  true,
 					})
 				},
 			}
@@ -256,9 +334,9 @@ func TestDeployment(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"existing-persistent": {
 							Type: schema.VolumeTypePersistent,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/persistent-existing",
+									{ContainerPath: "/persistent-existing"},
 								},
 							},
 							Variant: schema.PersistentVolume{
@@ -294,9 +372,9 @@ func TestDeployment(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"nonexisting-persistent": {
 							Type: schema.VolumeTypePersistent,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/persistent-nonexisting",
+									{ContainerPath: "/persistent-nonexisting"},
 								},
 							},
 							Variant: schema.PersistentVolume{
@@ -333,9 +411,9 @@ func TestDeployment(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"tmpfs-volume": {
 							Type: schema.VolumeTypeStandardTmpfs,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/tmpfs",
+									{ContainerPath: "/tmpfs"},
 								},
 							},
 							Variant: schema.StandardVolume{},
@@ -366,9 +444,9 @@ func TestDeployment(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"local-volume": {
 							Type: schema.VolumeTypeStandardLocal,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/local",
+									{ContainerPath: "/local"},
 								},
 							},
 							Variant: schema.StandardVolume{},
@@ -389,6 +467,86 @@ func TestDeployment(t *testing.T) {
 						MountPath:        "/local",
 						ReadOnly:         false,
 						MountPropagation: ptr.To(corev1.MountPropagationHostToContainer),
+					})
+				},
+			}
+		},
+		"readOnly can be overridden per mount": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers = append(dv.Containers, Container{
+						Name: "cache-warmer",
+						Image: Image{
+							Repository: "cache_warmer_repository",
+							Tag:        ptr.To("cache_warmer_tag"),
+						},
+					})
+					dv.Volumes = map[string]schema.Volume{
+						"shared-cache": {
+							Type: schema.VolumeTypePersistent,
+							Mounts: map[string]schema.VolumeMountList{
+								// main writes to the cache, cache-warmer only ever needs to read it
+								"main": {
+									{ContainerPath: "/var/cache/app"},
+								},
+								"cache-warmer": {
+									{ContainerPath: "/var/cache/app", ReadOnly: ptr.To(true)},
+								},
+							},
+							Variant: schema.PersistentVolume{
+								Existing: ptr.To(true),
+								Variant: schema.PersistentVolumeExisting{
+									PvcName: "payments-api-cache",
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Contains(t, d.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+						Name:             "shared-cache",
+						MountPath:        "/var/cache/app",
+						ReadOnly:         false,
+						MountPropagation: ptr.To(corev1.MountPropagationHostToContainer),
+					})
+					assert.Contains(t, d.Spec.Template.Spec.Containers[1].VolumeMounts, corev1.VolumeMount{
+						Name:      "shared-cache",
+						MountPath: "/var/cache/app",
+						ReadOnly:  true,
+					})
+				},
+			}
+		},
+		"mountPropagation can be explicitly overridden": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers = append(dv.Containers, Container{
+						Name: "log-shipper",
+						Image: Image{
+							Repository: "log_shipper_repository",
+							Tag:        ptr.To("log_shipper_tag"),
+						},
+					})
+					dv.Volumes = map[string]schema.Volume{
+						"scratch": {
+							Type: schema.VolumeTypeStandardLocal,
+							Mounts: map[string]schema.VolumeMountList{
+								// log-shipper mounts additional filesystems under this path at runtime,
+								// and needs those to propagate back so the main container can see them too
+								"log-shipper": {
+									{ContainerPath: "/var/scratch", MountPropagation: ptr.To(corev1.MountPropagationBidirectional)},
+								},
+							},
+							Variant: schema.StandardVolume{},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Contains(t, d.Spec.Template.Spec.Containers[1].VolumeMounts, corev1.VolumeMount{
+						Name:             "scratch",
+						MountPath:        "/var/scratch",
+						ReadOnly:         false,
+						MountPropagation: ptr.To(corev1.MountPropagationBidirectional),
 					})
 				},
 			}

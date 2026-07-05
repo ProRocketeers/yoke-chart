@@ -94,9 +94,9 @@ func TestPreDeploymentJob(t *testing.T) {
 					dv.PreDeploymentJob.Volumes = map[string]schema.Volume{
 						"secretVolume": {
 							Type: schema.VolumeTypeSecret,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/secret",
+									{ContainerPath: "/secret"},
 								},
 							},
 							Variant: schema.SecretVolume{

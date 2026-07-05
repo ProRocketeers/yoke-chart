@@ -109,25 +109,53 @@ func getVolumeMounts(c Container, podValues PodValues) []corev1.VolumeMount {
 	mounts := []corev1.VolumeMount{}
 
 	for volumeName, volumeInput := range sortedMap(podValues.Volumes) {
-		if mount, ok := volumeInput.Mounts[c.Name]; ok {
+		mountList, ok := volumeInput.Mounts[c.Name]
+		if !ok {
+			continue
+		}
+
+		for _, mount := range mountList {
+			readOnly := defaultVolumeReadOnly(volumeInput)
+			if mount.ReadOnly != nil {
+				readOnly = *mount.ReadOnly
+			}
+
 			m := corev1.VolumeMount{
 				Name:      volumeName,
 				MountPath: mount.ContainerPath,
+				ReadOnly:  readOnly,
+			}
+			if mount.VolumePath != nil {
+				m.SubPath = *mount.VolumePath
 			}
 
-			isReadonly := volumeInput.Type == schema.VolumeTypeSecret || volumeInput.Type == schema.VolumeTypeConfigMap
-
-			if isReadonly {
-				m.ReadOnly = true
-			} else {
-				m.ReadOnly = false
+			// preserves the previous implicit behavior (propagation only for writable mounts)
+			// unless the user overrides it explicitly
+			if !readOnly {
 				m.MountPropagation = ptr.To(corev1.MountPropagationHostToContainer)
-				if mount.VolumePath != nil {
-					m.SubPath = *mount.VolumePath
-				}
 			}
+			if mount.MountPropagation != nil {
+				m.MountPropagation = mount.MountPropagation
+			}
+
 			mounts = append(mounts, m)
 		}
 	}
 	return mounts
+}
+
+// defaultVolumeReadOnly resolves the type-based default for whether a mount should be read-only,
+// used unless a mount explicitly sets its own `readOnly`.
+func defaultVolumeReadOnly(volume schema.Volume) bool {
+	switch volume.Type {
+	case schema.VolumeTypeSecret, schema.VolumeTypeConfigMap:
+		return true
+	case schema.VolumeTypeRaw:
+		// a raw volume wrapping an inherently read-only source (e.g. a Secret/ConfigMap spec)
+		// should default the same way the dedicated `secret`/`configMap` types do
+		source := volume.Variant.(schema.RawVolume).Spec
+		return source.Secret != nil || source.ConfigMap != nil || source.DownwardAPI != nil || source.Projected != nil
+	default:
+		return false
+	}
 }

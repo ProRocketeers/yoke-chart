@@ -7,6 +7,7 @@ import (
 	"github.com/ProRocketeers/yoke-chart/schema"
 	"github.com/lithammer/dedent"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // meant for testing the parsing mechanism and custom validation logic etc.
@@ -176,6 +177,108 @@ func TestMain(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Nil(t, iv.HTTPRoute)
 				assert.Contains(t, iv.HTTPRoutes, "public")
+			},
+		},
+		"accepts a single volume mount object (backwards compatible shape)": {
+			Input: `
+        namespace: foo
+        service: payments-api
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        volumes:
+          app-config:
+            type: configMap
+            configMapName: payments-api-config
+            mounts:
+              main:
+                containerPath: /etc/payments-api
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.NoError(t, err)
+				require.Len(t, iv.Volumes["app-config"].Mounts["main"], 1)
+				assert.Equal(t, "/etc/payments-api", iv.Volumes["app-config"].Mounts["main"][0].ContainerPath)
+			},
+		},
+		"accepts multiple volume mounts as a list for the same container": {
+			Input: `
+        namespace: foo
+        service: payments-api
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        volumes:
+          app-config:
+            type: configMap
+            configMapName: payments-api-config
+            mounts:
+              main:
+                - containerPath: /etc/payments-api/app.yaml
+                  volumePath: app.yaml
+                - containerPath: /etc/payments-api/logging.yaml
+                  volumePath: logging.yaml
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.NoError(t, err)
+				mounts := iv.Volumes["app-config"].Mounts["main"]
+				require.Len(t, mounts, 2)
+				assert.Equal(t, "/etc/payments-api/app.yaml", mounts[0].ContainerPath)
+				assert.Equal(t, "/etc/payments-api/logging.yaml", mounts[1].ContainerPath)
+			},
+		},
+		"fails when a volume mount inside a list is missing its containerPath": {
+			Input: `
+        namespace: foo
+        service: payments-api
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        volumes:
+          app-config:
+            type: configMap
+            configMapName: payments-api-config
+            mounts:
+              main:
+                - containerPath: /etc/payments-api/app.yaml
+                - volumePath: logging.yaml
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.Error(t, err)
+			},
+		},
+		"fails on an invalid mountPropagation value": {
+			Input: `
+        namespace: foo
+        service: payments-api
+        component: bar
+        environment: test
+
+        image:
+          repository: foo
+          tag: bleh
+
+        volumes:
+          scratch:
+            type: local
+            mounts:
+              main:
+                containerPath: /var/scratch
+                mountPropagation: Sideways
+      `,
+			Asserts: func(t *testing.T, iv schema.InputValues, err error) {
+				assert.Error(t, err)
 			},
 		},
 		"fails when both httpRoute and httpRoutes are set": {

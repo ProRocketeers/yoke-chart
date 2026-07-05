@@ -136,9 +136,9 @@ func TestCronjob(t *testing.T) {
 					dv.Cronjobs[0].Volumes = map[string]schema.Volume{
 						"secretVolume": {
 							Type: schema.VolumeTypeSecret,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/secret",
+									{ContainerPath: "/secret"},
 								},
 							},
 							Variant: schema.SecretVolume{

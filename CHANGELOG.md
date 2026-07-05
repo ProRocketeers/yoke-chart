@@ -14,6 +14,32 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.9.0] - 2026-07-05
+
+### :star: Added
+- volumes can now be mounted **multiple times** into the same container (e.g. at different `containerPath` or `volumePath`)
+  - this change is _backwards compatible_ and the chart supports both input shapes:
+    ```yaml
+    volume:
+      storage:
+        type: persistent
+        # ...
+        mounts:
+          main:
+            containerPath: /data
+          sidecar:
+            - containerPath: /data
+            - containerPath: /setup
+              volumePath: setup
+        
+    ```
+- volume mount's `readOnly` can now be overridden (defaults to `true` for Secret, ConfigMap, Downward API and Projected volumes, `false` otherwise)
+- volume mount's `mountPropagation` can now be overridden (defaults to `HostToContainer` where `readOnly = false`)
+
+### :hammer_and_wrench: Fixed
+- volume mount's `volumePath` (mounted as `subPath`) is no longer silently ignored for `secret`/`configMap` volumes - it can now be used to mount a single file into an existing directory
+- container names in `volumes.*.mounts` are now actually validated if they exist and throw error otherwise
+
 ## [1.8.2] - 2026-06-30
 
 ### :pencil2: Changed
@@ -191,7 +217,8 @@ For clarity we use following emoji for the changes:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.2...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.9.0...HEAD
+[1.9.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.2...1.9.0
 [1.8.2]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.1...1.8.2
 [1.8.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.0...1.8.1
 [1.8.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.7.0...1.8.0

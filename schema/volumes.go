@@ -21,8 +21,8 @@ const (
 )
 
 type Volume struct {
-	Type   VolumeType             `json:"type" validate:"required"`
-	Mounts map[string]VolumeMount `json:"mounts" validate:"required,dive"`
+	Type   VolumeType                 `json:"type" validate:"required"`
+	Mounts map[string]VolumeMountList `json:"mounts" validate:"required,dive,dive"`
 
 	Variant VolumeVariant `json:"-"`
 }
@@ -30,6 +30,30 @@ type Volume struct {
 type VolumeMount struct {
 	ContainerPath string  `json:"containerPath" validate:"required"`
 	VolumePath    *string `json:"volumePath,omitempty"`
+
+	// OPTIONAL - overrides the type-based default (secret/configMap default to true, everything else to false)
+	ReadOnly *bool `json:"readOnly,omitempty"`
+	// OPTIONAL - overrides the type-based default (mirrors the current implicit behavior: unset/None for readonly mounts, HostToContainer otherwise)
+	MountPropagation *v1.MountPropagationMode `json:"mountPropagation,omitempty" validate:"omitempty,oneof=None HostToContainer Bidirectional"`
+}
+
+// VolumeMountList accepts either a single mount object or a sequence of them in YAML,
+// so the same volume can be mounted into one container more than once (e.g. at different subPaths)
+type VolumeMountList []VolumeMount
+
+func (l *VolumeMountList) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var single VolumeMount
+	if err := unmarshal(&single); err == nil {
+		*l = VolumeMountList{single}
+		return nil
+	}
+
+	var list []VolumeMount
+	if err := unmarshal(&list); err != nil {
+		return fmt.Errorf("volume mount must be a mapping or a sequence of mappings: %w", err)
+	}
+	*l = list
+	return nil
 }
 
 // Go doesn't have a type union, like `StandardVolume | RawVolume | ...`

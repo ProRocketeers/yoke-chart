@@ -24,9 +24,9 @@ func TestPVC(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"pvc": {
 							Type: schema.VolumeTypePersistent,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/pvc",
+									{ContainerPath: "/pvc"},
 								},
 							},
 							Variant: schema.PersistentVolume{
@@ -55,9 +55,9 @@ func TestPVC(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"pvc": {
 							Type: schema.VolumeTypePersistent,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/pvc",
+									{ContainerPath: "/pvc"},
 								},
 							},
 							Variant: schema.PersistentVolume{
@@ -82,9 +82,9 @@ func TestPVC(t *testing.T) {
 					dv.Volumes = map[string]schema.Volume{
 						"pvc": {
 							Type: schema.VolumeTypePersistent,
-							Mounts: map[string]schema.VolumeMount{
+							Mounts: map[string]schema.VolumeMountList{
 								"main": {
-									ContainerPath: "/pvc",
+									{ContainerPath: "/pvc"},
 								},
 							},
 							Variant: schema.PersistentVolume{
