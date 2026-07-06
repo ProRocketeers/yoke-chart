@@ -24,7 +24,6 @@ func createContainer(c Container, podValues PodValues) (corev1.Container, error)
 		ReadinessProbe:  c.ReadinessProbe,
 		LivenessProbe:   c.LivenessProbe,
 		VolumeMounts:    getVolumeMounts(c, podValues),
-		SecurityContext: c.SecurityContext,
 	}
 	if c.Image.PullPolicy != nil {
 		container.ImagePullPolicy = *c.Image.PullPolicy

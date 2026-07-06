@@ -45,7 +45,6 @@ func createPodSpec(podValuesExtractor PodValuesExtractor, values DeploymentValue
 		Tolerations:               podValues.SchedulingConfig.Tolerations,
 		TopologySpreadConstraints: podValues.SchedulingConfig.TopologySpreadConstraints,
 		Volumes:                   volumes,
-		SecurityContext:           podValues.PodSecurityContext,
 	}
 	if podValues.SchedulingConfig.PriorityClassName != nil {
 		podSpec.PriorityClassName = *podValues.SchedulingConfig.PriorityClassName

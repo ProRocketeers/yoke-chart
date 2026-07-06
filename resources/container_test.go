@@ -345,6 +345,24 @@ func TestContainer(t *testing.T) {
 				},
 			}
 		},
+		"regression: container-level securityContext is only reachable via containerSpec now (dedicated field was removed)": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ContainerSpec = &corev1.Container{
+						SecurityContext: &corev1.SecurityContext{
+							ReadOnlyRootFilesystem: ptr.To(true),
+							RunAsNonRoot:           ptr.To(true),
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					sc := d.Spec.Template.Spec.Containers[0].SecurityContext
+					require.NotNil(t, sc)
+					assert.Equal(t, ptr.To(true), sc.ReadOnlyRootFilesystem)
+					assert.Equal(t, ptr.To(true), sc.RunAsNonRoot)
+				},
+			}
+		},
 	}
 
 	// instead of unit testing the `createContainer` with a bit more complicated parameters

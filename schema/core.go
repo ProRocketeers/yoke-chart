@@ -47,9 +47,8 @@ type InputValues struct {
 	Labels         map[string]string `json:"labels,omitempty"`
 	PodLabels      map[string]string `json:"podLabels,omitempty"`
 
-	SchedulingConfig   `json:",inline"`
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	PodSpec            *corev1.PodSpec            `json:"podSpec,omitempty"`
+	SchedulingConfig `json:",inline"`
+	PodSpec          *corev1.PodSpec `json:"podSpec,omitempty"`
 
 	ExtraManifests []map[string]interface{} `json:"extraManifests,omitempty"`
 
@@ -103,7 +102,6 @@ type Container struct {
 	ReadinessProbe  *corev1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe   *corev1.Probe                `json:"livenessProbe,omitempty"`
 	Lifecycle       *corev1.Lifecycle            `json:"lifecycle,omitempty"`
-	SecurityContext *corev1.SecurityContext      `json:"securityContext,omitempty"`
 	ContainerSpec   *corev1.Container            `json:"containerSpec,omitempty"`
 }
 
@@ -126,9 +124,13 @@ type InitContainer struct {
 }
 
 type ServiceConfig struct {
-	Type        *corev1.ServiceType `json:"type,omitempty"`
-	Annotations map[string]string   `json:"annotations,omitempty"`
-	Labels      map[string]string   `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+
+	// OPTIONAL - escape hatch: full Kubernetes `ServiceSpec`, inlined so `serviceConfig.type` etc. keep
+	// working directly. The Flight builds `selector`/`type`/`ports` itself first, then layers this on
+	// top - same merge semantics as `containerSpec`/`podSpec`/etc.
+	corev1.ServiceSpec `json:",inline"`
 }
 
 func init() {

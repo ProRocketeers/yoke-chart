@@ -64,12 +64,20 @@ ports:
 # to that container)
 containerSpec: {}
 
+# `serviceConfig` - escape hatch: full Kubernetes `ServiceSpec` for the main Service, inlined directly
+# (so `serviceConfig.type` etc. work like before), plus `annotations`/`labels` for the Service itself.
+# https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
+# same merge semantics as `containerSpec` above - the Flight builds `selector`/`type`/`ports` itself
+# first, then layers this on top. Useful for fields with no dedicated value, like `sessionAffinity` or
+# `externalTrafficPolicy` (only relevant for `NodePort`/`LoadBalancer` types).
 serviceConfig:
+  annotations: {}
+  labels: {}
   # `serviceConfig.type` - changes the main deployment's Service type. OPTIONAL - defaults to ClusterIP
   # NOTE: if any port has `nodePort` specified, and `serviceConfig.type: ClusterIP` or empty, then this is automatically overridden to `NodePort`
   type: ClusterIP
-  annotations: {}
-  labels: {}
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
 
 # Environment variables
 # `envs` - key-value pairs of literal environment values. OPTIONAL

@@ -141,6 +141,24 @@ func TestCreatePodSpec(t *testing.T) {
 				},
 			}
 		},
+		"regression: pod-level securityContext is only reachable via podSpec now (dedicated field was removed)": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.PodSpec = &corev1.PodSpec{
+						SecurityContext: &corev1.PodSecurityContext{
+							RunAsNonRoot: ptr.To(true),
+							RunAsUser:    ptr.To(int64(1000)),
+						},
+					}
+				},
+				Asserts: func(t *testing.T, podSpec corev1.PodSpec, err error) {
+					require.NoError(t, err)
+					require.NotNil(t, podSpec.SecurityContext)
+					assert.Equal(t, ptr.To(true), podSpec.SecurityContext.RunAsNonRoot)
+					assert.Equal(t, ptr.To(int64(1000)), podSpec.SecurityContext.RunAsUser)
+				},
+			}
+		},
 	}
 
 	base := DeploymentValues{

@@ -15,14 +15,13 @@ type Cronjob struct {
 	Volumes           map[string]Volume `json:"volumes,omitempty" validate:"dive"`
 	PodMonitor        *PodMonitor       `json:"podMonitor"`
 
-	CronJobAnnotations map[string]string      `json:"cronJobAnnotations,omitempty"`
-	CronJobLabels      map[string]string      `json:"cronJobLabels,omitempty"`
-	JobAnnotations     map[string]string      `json:"jobAnnotations,omitempty"`
-	JobLabels          map[string]string      `json:"jobLabels,omitempty"`
-	PodAnnotations     map[string]string      `json:"podAnnotations,omitempty"`
-	PodLabels          map[string]string      `json:"podLabels,omitempty"`
-	PodSecurityContext *v1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	PodSpec            *v1.PodSpec            `json:"podSpec,omitempty"`
+	CronJobAnnotations map[string]string `json:"cronJobAnnotations,omitempty"`
+	CronJobLabels      map[string]string `json:"cronJobLabels,omitempty"`
+	JobAnnotations     map[string]string `json:"jobAnnotations,omitempty"`
+	JobLabels          map[string]string `json:"jobLabels,omitempty"`
+	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
+	PodLabels          map[string]string `json:"podLabels,omitempty"`
+	PodSpec            *v1.PodSpec       `json:"podSpec,omitempty"`
 
 	SchedulingConfig `json:",inline"`
 

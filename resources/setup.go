@@ -28,7 +28,6 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 		Labels:              input.Labels,
 		PodLabels:           input.PodLabels,
 		SchedulingConfig:    input.SchedulingConfig,
-		PodSecurityContext:  input.PodSecurityContext,
 		PodSpec:             input.PodSpec,
 		ConfigMaps:          input.ConfigMaps,
 		ExtraManifests:      []unstructured.Unstructured{},
@@ -53,11 +52,13 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 	}
 
 	if input.ServiceConfig != nil {
-		if input.ServiceConfig.Type != nil {
-			values.Service.Type = *input.ServiceConfig.Type
+		if input.ServiceConfig.Type != "" {
+			values.Service.Type = input.ServiceConfig.Type
 		}
 		values.Service.Annotations = input.ServiceConfig.Annotations
 		values.Service.Labels = input.ServiceConfig.Labels
+		rawSpec := input.ServiceConfig.ServiceSpec
+		values.Service.RawSpec = &rawSpec
 	}
 
 	if containers, err := getDeploymentContainers(input); err != nil {
@@ -172,16 +173,15 @@ func getPreDeploymentJob(input schema.InputValues) (PreDeploymentJob, error) {
 			Component:   input.Metadata.Component,
 			Environment: input.Metadata.Environment,
 		},
-		PodMonitor:         input.PreDeploymentJob.PodMonitor,
-		Volumes:            input.PreDeploymentJob.Volumes,
-		Annotations:        input.PreDeploymentJob.Annotations,
-		Labels:             input.PreDeploymentJob.Labels,
-		PodAnnotations:     input.PreDeploymentJob.PodAnnotations,
-		PodLabels:          input.PreDeploymentJob.PodLabels,
-		PodSecurityContext: input.PreDeploymentJob.PodSecurityContext,
-		PodSpec:            input.PreDeploymentJob.PodSpec,
-		SchedulingConfig:   input.PreDeploymentJob.SchedulingConfig,
-		JobSpec:            input.PreDeploymentJob.JobSpec,
+		PodMonitor:       input.PreDeploymentJob.PodMonitor,
+		Volumes:          input.PreDeploymentJob.Volumes,
+		Annotations:      input.PreDeploymentJob.Annotations,
+		Labels:           input.PreDeploymentJob.Labels,
+		PodAnnotations:   input.PreDeploymentJob.PodAnnotations,
+		PodLabels:        input.PreDeploymentJob.PodLabels,
+		PodSpec:          input.PreDeploymentJob.PodSpec,
+		SchedulingConfig: input.PreDeploymentJob.SchedulingConfig,
+		JobSpec:          input.PreDeploymentJob.JobSpec,
 	}
 
 	// init containers
@@ -211,12 +211,11 @@ func getCronjobs(input schema.InputValues) ([]Cronjob, error) {
 				Component:   input.Metadata.Component,
 				Environment: input.Metadata.Environment,
 			},
-			Name:               input.Cronjobs[i].Name,
-			Schedule:           input.Cronjobs[i].Schedule,
-			Volumes:            input.Cronjobs[i].Volumes,
-			PodMonitor:         input.Cronjobs[i].PodMonitor,
-			PodSecurityContext: input.Cronjobs[i].PodSecurityContext,
-			PodSpec:            input.Cronjobs[i].PodSpec,
+			Name:       input.Cronjobs[i].Name,
+			Schedule:   input.Cronjobs[i].Schedule,
+			Volumes:    input.Cronjobs[i].Volumes,
+			PodMonitor: input.Cronjobs[i].PodMonitor,
+			PodSpec:    input.Cronjobs[i].PodSpec,
 
 			CronJobAnnotations: input.Cronjobs[i].CronJobAnnotations,
 			CronJobLabels:      input.Cronjobs[i].CronJobLabels,
@@ -275,7 +274,6 @@ func convertContainer(container schema.Container, names ...*string) Container {
 		ReadinessProbe:  container.ReadinessProbe,
 		LivenessProbe:   container.LivenessProbe,
 		Lifecycle:       container.Lifecycle,
-		SecurityContext: container.SecurityContext,
 		ContainerSpec:   container.ContainerSpec,
 	}
 }

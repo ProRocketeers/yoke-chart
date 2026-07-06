@@ -55,7 +55,7 @@ func TestSetup(t *testing.T) {
 		"can override ServiceType": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(iv *schema.InputValues) {
-					iv.ServiceConfig = &schema.ServiceConfig{Type: ptr.To(corev1.ServiceTypeNodePort)}
+					iv.ServiceConfig = &schema.ServiceConfig{ServiceSpec: corev1.ServiceSpec{Type: corev1.ServiceTypeNodePort}}
 				},
 				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
 					require.Nil(t, err)
@@ -86,7 +86,7 @@ func TestSetup(t *testing.T) {
 		"does not override ServiceType if node port is specified on any port and service type is not ClusterIP": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(iv *schema.InputValues) {
-					iv.ServiceConfig = &schema.ServiceConfig{Type: ptr.To(corev1.ServiceTypeLoadBalancer)}
+					iv.ServiceConfig = &schema.ServiceConfig{ServiceSpec: corev1.ServiceSpec{Type: corev1.ServiceTypeLoadBalancer}}
 					iv.Container.Ports = []schema.Port{
 						{
 							Port:     80,

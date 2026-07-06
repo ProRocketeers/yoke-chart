@@ -3,6 +3,7 @@ package resources
 import (
 	"fmt"
 
+	"dario.cat/mergo"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -38,6 +39,13 @@ func CreateService(values DeploymentValues) (bool, ResourceCreator) {
 				Ports: getServicePorts(values),
 			},
 		}
+
+		if values.Service.RawSpec != nil {
+			if err := mergo.Merge(&service.Spec, *values.Service.RawSpec, mergo.WithOverride); err != nil {
+				return nil, fmt.Errorf("merging raw serviceConfig spec: %v", err)
+			}
+		}
+
 		u, err := toUnstructured(&service)
 		if err != nil {
 			return nil, err

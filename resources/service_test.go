@@ -168,6 +168,34 @@ func TestService(t *testing.T) {
 				},
 			}
 		},
+		"serviceConfig merges in fields with no dedicated value, like sessionAffinity/externalTrafficPolicy": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Service.RawSpec = &corev1.ServiceSpec{
+						SessionAffinity:       corev1.ServiceAffinityClientIP,
+						ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyLocal,
+					}
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Equal(t, corev1.ServiceAffinityClientIP, s.Spec.SessionAffinity)
+					assert.Equal(t, corev1.ServiceExternalTrafficPolicyLocal, s.Spec.ExternalTrafficPolicy)
+					// chart-derived fields survive untouched since the raw spec didn't set them
+					assert.Equal(t, map[string]string{"app": "service--component--test"}, s.Spec.Selector)
+				},
+			}
+		},
+		"serviceConfig can override selector - no protected fields": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Service.RawSpec = &corev1.ServiceSpec{
+						Selector: map[string]string{"app": "replaced"},
+					}
+				},
+				Asserts: func(t *testing.T, s *corev1.Service) {
+					assert.Equal(t, map[string]string{"app": "replaced"}, s.Spec.Selector)
+				},
+			}
+		},
 		"renders scrape label if service monitor is enabled": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
