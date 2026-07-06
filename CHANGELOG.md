@@ -14,6 +14,75 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.11.0] - 2026-07-06
+
+### :boom: BREAKING CHANGES
+- `PreDeploymentJob` and `CronJob` extra config fields have been separated into their own respective properties and are now full unchecked overrides (see below)
+  - table of what properties moved where:
+
+    | Previously (flat on `cronjobs[]` / `preDeploymentJob`)                                                                                                          | Moved to                                                |
+    |-----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+    | CronJob only fields - `timeZone`, `concurrencyPolicy`, `suspend`, `startingDeadlineSeconds`, `successfulJobsHistoryLimit`, `failedJobsHistoryLimit`             | `cronjobs[].cronJobSpec.*`                              |
+    | Job fields - `activeDeadlineSeconds`, `backoffLimit`, `completionMode`, `completions`, `parallelism`, `podFailurePolicy`, `selector`, `ttlSecondsAfterFinished` | `cronjobs[].jobSpec.*` and `preDeploymentJob.jobSpec.*` |
+    | `preDeploymentJob.suspend` (distinct field from `CronJobSpec.Suspend` above)                                                                                    | `preDeploymentJob.jobSpec.suspend`                      |
+
+  - in addition to these fields, some new fields were "added" (more specifically, just exposed) - e.g. `JobSpec.(successPolicy|podReplacementPolicy|...)`
+- `statefulSet` property (used for specifying additional `StatefulSet` properties) is now **renamed** to `statefulSetSpec` (to align with other override fields)
+  - also, the behavior changed - previously it was taken to be the "source", while the chart overridden `selector`, `template`, `serviceName` and `replicas` (to ensure correctness)
+  - now, again in unity with other override fields, this property is taken to be a full override over the opinionated defaults
+- `securityContext` and `podSecurityContext` (on all levels/places) - now **REMOVED**, in favor of the new `podSpec` and `containerSpec` fields
+
+### :star: Added
+- ability to specify `startupProbe` - same types as other probes, but run before readiness/liveness probes; very useful for slow-starting containers
+- ability to specify `dataSource` or `dataSourceRef` on new persistent volumes (same shape as in `PersistentVolumeSpec`)
+  ```yaml
+  volumes:
+    data:
+      type: persistent
+      existing: false
+      # ...
+      dataSource:
+        name: volume-snapshot
+        kind: VolumeSnapshot
+        apiGroup: snapshot.storage.k8s.io
+  ```
+- ability to override `creationPolicy` and `deletionPolicy` on `ExternalSecrets` (defaults to `Owner` and `Delete` respectively)
+  ```yaml
+  externalSecrets:
+    - secretStore: {...}
+      creationPolicy: Orphan
+      deletionPolicy: Retain
+      mapping: {}
+  ```
+- ability to specify `topologySpreadConstraints` and `priorityClassName` (on root level and also in `cronjobs[].*` and `preDeploymentJob.*` - on Pod level) extending the scheduling configs
+
+#### Overrides
+- the chart is generally *opinionated*, with reasonable defaults for majority of situations, however we wanted to provide customizability
+- added properties that are meant to be catch-all, **UNCHECKED** overrides at every level
+- these are meant to be overrides that are layered **AFTER** the chart templates the objects
+- these merges are **NOT CHECKED**, and can result in misconfiguration and broken deployments - that's on you as a user
+- specific added fields:
+  - `deploymentSpec` / `statefulSetSpec`
+  - `podSpec` - for main workload's `Pod`
+    - also in other places - `preDeploymentJob.podSpec`, `cronjobs[].podSpec`
+  - `containerSpec` - for main workload's main container
+    - also on every other Container specification:
+    - `sidecars.containerSpec`
+    - `initContainers[].containerSpec`
+    - `preDeploymentJob.containerSpec` - pre-deployment Job's main container
+    - `preDeploymentJob.initContainers[].containerSpec`
+    - `cronjobs[].containerSpec` - CronJob's main container
+    - `cronjobs[].initContainers[].containerSpec`
+  - `serviceConfig` - overrides for the main workload's `Service`
+    - the fields here are actually inlined, so its fields such as `Type` or `SessionAffinity` are directly on `serviceConfig`
+  - `preDeploymentJob.jobSpec`
+    - this was previously inlined, with only selected fields, now a full override
+  - `cronjobs[].jobSpec` and `cronjobs[].cronJobSpec`
+    - also previously an inlined combination of fields, now separate in its own fields, again a full override
+
+### :hammer_and_wrench: Fixed
+- `HorizontalPodAutoscaler` now properly attaches to `StatefulSet` if `kind: StatefulSet`
+
 ## [1.10.0] - 2026-07-06
 
 ### :star: Added
@@ -299,7 +368,8 @@ extraManifests:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.10.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.0...HEAD
+[1.11.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.9.0...1.10.0
 [1.9.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.2...1.9.0
 [1.8.2]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.1...1.8.2
