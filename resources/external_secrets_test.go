@@ -131,6 +131,78 @@ func TestExternalSecrets(t *testing.T) {
 				},
 			}
 		},
+		"defaults creationPolicy/deletionPolicy to Owner/Delete": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": nil,
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, secrets []*es.ExternalSecret) {
+					require.Len(t, secrets, 1)
+					assert.Equal(t, es.CreatePolicyOwner, secrets[0].Spec.Target.CreationPolicy)
+					assert.Equal(t, es.DeletionPolicyDelete, secrets[0].Spec.Target.DeletionPolicy)
+				},
+			}
+		},
+		"can override creationPolicy/deletionPolicy for a full secret fetch": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": nil,
+							},
+							CreationPolicy: ptr.To(es.CreatePolicyMerge),
+							DeletionPolicy: ptr.To(es.DeletionPolicyRetain),
+						},
+					}
+				},
+				Asserts: func(t *testing.T, secrets []*es.ExternalSecret) {
+					require.Len(t, secrets, 1)
+					assert.Equal(t, es.CreatePolicyMerge, secrets[0].Spec.Target.CreationPolicy)
+					assert.Equal(t, es.DeletionPolicyRetain, secrets[0].Spec.Target.DeletionPolicy)
+				},
+			}
+		},
+		"can override creationPolicy/deletionPolicy for a partial secret mapping": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ExternalSecrets = []schema.ExternalSecretDefinition{
+						{
+							SecretStore: es.SecretStoreRef{
+								Name: "vault",
+								Kind: "ClusterSecretStore",
+							},
+							Mapping: map[string]schema.SecretMapping{
+								"path/to/secret": {
+									"MY_ENV": ptr.To("MY-SECRET"),
+								},
+							},
+							CreationPolicy: ptr.To(es.CreatePolicyMerge),
+							DeletionPolicy: ptr.To(es.DeletionPolicyRetain),
+						},
+					}
+				},
+				Asserts: func(t *testing.T, secrets []*es.ExternalSecret) {
+					require.Len(t, secrets, 1)
+					assert.Equal(t, es.CreatePolicyMerge, secrets[0].Spec.Target.CreationPolicy)
+					assert.Equal(t, es.DeletionPolicyRetain, secrets[0].Spec.Target.DeletionPolicy)
+				},
+			}
+		},
 		"properly renders secrets from multiple stores": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {

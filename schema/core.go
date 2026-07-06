@@ -108,6 +108,10 @@ type ExternalSecretDefinition struct {
 	SecretStore     es.SecretStoreRef        `json:"secretStore" validate:"required"`
 	RefreshInterval *metav1.Duration         `json:"refreshInterval"`
 	Mapping         map[string]SecretMapping `json:"mapping" validate:"min=1,dive"`
+
+	// OPTIONAL - defaults to `Owner`/`Delete` (today's behavior) when unset
+	CreationPolicy *es.ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
+	DeletionPolicy *es.ExternalSecretDeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
 type InitContainer struct {

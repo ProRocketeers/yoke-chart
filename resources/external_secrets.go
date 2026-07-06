@@ -28,6 +28,15 @@ func CreateExternalSecrets(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		for _, container := range containers {
 			for _, definition := range container.ExternalSecrets {
+				creationPolicy := es.CreatePolicyOwner
+				if definition.CreationPolicy != nil {
+					creationPolicy = *definition.CreationPolicy
+				}
+				deletionPolicy := es.DeletionPolicyDelete
+				if definition.DeletionPolicy != nil {
+					deletionPolicy = *definition.DeletionPolicy
+				}
+
 				for secretPath, secretMapping := range sortedMap(definition.Mapping) {
 					secretName := secretName(secretPath, definition.SecretStore.Name, values.Metadata)
 
@@ -65,8 +74,8 @@ func CreateExternalSecrets(values DeploymentValues) (bool, ResourceCreator) {
 						}
 						secret.Spec.Target = es.ExternalSecretTarget{
 							Name:           secretName,
-							CreationPolicy: es.CreatePolicyOwner,
-							DeletionPolicy: es.DeletionPolicyDelete,
+							CreationPolicy: creationPolicy,
+							DeletionPolicy: deletionPolicy,
 						}
 					} else {
 						// or just part of it
@@ -97,8 +106,8 @@ func CreateExternalSecrets(values DeploymentValues) (bool, ResourceCreator) {
 						secret.Spec.Data = remoteRefs
 						secret.Spec.Target = es.ExternalSecretTarget{
 							Name:           secretName,
-							CreationPolicy: es.CreatePolicyOwner,
-							DeletionPolicy: es.DeletionPolicyDelete,
+							CreationPolicy: creationPolicy,
+							DeletionPolicy: deletionPolicy,
 							Template: &es.ExternalSecretTemplate{
 								Type:          corev1.SecretTypeOpaque,
 								EngineVersion: es.TemplateEngineV2,
