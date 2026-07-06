@@ -5,14 +5,13 @@ import (
 
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreatePDB(values DeploymentValues) (bool, ResourceCreator) {
-	return values.PodDisruptionBudget != nil, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+	return values.PodDisruptionBudget != nil, func(values DeploymentValues) ([]NamedResource, error) {
 		spec := values.PodDisruptionBudget
 		if spec.MinAvailable != nil && spec.MaxUnavailable != nil {
-			return []unstructured.Unstructured{}, fmt.Errorf("you cannot specify both 'minAvailable' and 'maxUnavailable' in a PodDisruptionBudget")
+			return nil, fmt.Errorf("you cannot specify both 'minAvailable' and 'maxUnavailable' in a PodDisruptionBudget")
 		}
 		pdb := policyv1.PodDisruptionBudget{
 			TypeMeta: metav1.TypeMeta{
@@ -33,8 +32,8 @@ func CreatePDB(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		u, err := toUnstructured(&pdb)
 		if err != nil {
-			return []unstructured.Unstructured{}, err
+			return nil, err
 		}
-		return u, nil
+		return []NamedResource{{Category: CategoryPDB, Object: u[0]}}, nil
 	}
 }

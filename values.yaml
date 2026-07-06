@@ -508,10 +508,6 @@ tolerations: []
 # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodAntiAffinity
 affinity: {}
 
-# `extraManifests` - array of extra Kubernetes objects (or template strings to be evaluated) to be rendered by the chart. OPTIONAL
-# rendered *once*, NOT per deployment, not validated in any way
-extraManifests: []
-
 # `db` - renders a Zalando Postgres cluster
 db:
   enabled: false
@@ -613,3 +609,8 @@ networkPolicies:
           - namespaceSelector:
               matchLabels:
                 kubernetes.io/metadata.name: ingress-nginx
+
+# `extraManifests` - array of extra Kubernetes objects to be rendered by the chart. OPTIONAL
+# not validated in any way
+# leaf string values can be templated with {{ }} Go templates, see Changelog entry for 1.10.0
+extraManifests: []

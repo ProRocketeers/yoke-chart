@@ -8,13 +8,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func CreateStatefulSet(values DeploymentValues) (bool, ResourceCreator) {
-	return true, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return true, func(values DeploymentValues) ([]NamedResource, error) {
 		podAnnotations := map[string]string{}
 		maps.Copy(podAnnotations, values.PodAnnotations)
 
@@ -80,10 +78,12 @@ func CreateStatefulSet(values DeploymentValues) (bool, ResourceCreator) {
 
 		u, err := toUnstructured(&statefulSet, &headlessSvc)
 		if err != nil {
-			return []unstructured.Unstructured{}, err
+			return nil, err
 		}
-		resources = append(resources, u...)
-		return resources, nil
+		return []NamedResource{
+			{Category: CategoryWorkload, Object: u[0]},
+			{Category: CategoryHeadlessService, Object: u[1]},
+		}, nil
 	}
 }
 

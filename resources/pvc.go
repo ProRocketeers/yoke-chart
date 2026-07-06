@@ -7,13 +7,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func CreatePVCs(values DeploymentValues) (bool, ResourceCreator) {
-	return hasAnyPVC(values), func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return hasAnyPVC(values), func(values DeploymentValues) ([]NamedResource, error) {
+		resources := []NamedResource{}
 		for volumeName, volume := range newPersistentVolumes(values) {
 			v := volume.Variant.(schema.PersistentVolume).Variant.(schema.PersistentVolumeNew)
 			// already validated during unmarshaling, ignoring error
@@ -50,9 +49,9 @@ func CreatePVCs(values DeploymentValues) (bool, ResourceCreator) {
 
 			u, err := toUnstructured(&pvc)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryPVCs, Key: pvcName(volumeName, values.Metadata), Object: u[0]})
 		}
 		return resources, nil
 	}

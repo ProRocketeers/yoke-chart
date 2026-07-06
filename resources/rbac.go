@@ -5,13 +5,12 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateRBAC(values DeploymentValues) (bool, ResourceCreator) {
 	create := values.ServiceAccount != nil && (values.ServiceAccount.AdditionalRole != nil || values.ServiceAccount.AdditionalClusterRole != nil)
-	return create, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return create, func(values DeploymentValues) ([]NamedResource, error) {
+		resources := []NamedResource{}
 		sa := values.ServiceAccount
 
 		if sa.AdditionalRole != nil {
@@ -56,9 +55,12 @@ func CreateRBAC(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&role, &roleBinding)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources,
+				NamedResource{Category: CategoryRole, Object: u[0]},
+				NamedResource{Category: CategoryRoleBinding, Object: u[1]},
+			)
 		}
 
 		if sa.AdditionalClusterRole != nil {
@@ -101,9 +103,12 @@ func CreateRBAC(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&role, &roleBinding)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources,
+				NamedResource{Category: CategoryClusterRole, Object: u[0]},
+				NamedResource{Category: CategoryClusterRoleBinding, Object: u[1]},
+			)
 		}
 
 		return resources, nil

@@ -7,14 +7,13 @@ import (
 	"github.com/jinzhu/copier"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func TestPrometheusMonitors(t *testing.T) {
 	type CaseConfig struct {
 		ValuesTransform func(*DeploymentValues)
-		Asserts         func(*testing.T, []unstructured.Unstructured)
+		Asserts         func(*testing.T, []NamedResource)
 	}
 
 	cases := map[string]CaseConfig{
@@ -35,7 +34,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				sm := findResourceOrFail[*monitoringv1.ServiceMonitor](t, r, "ServiceMonitor", "service--component--test")
 
 				assert.Equal(t, "ns", sm.Namespace)
@@ -87,7 +86,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				pm := findResourceOrFail[*monitoringv1.PodMonitor](t, r, "PodMonitor", "service--component--test--pre-deploy")
 
 				assert.Equal(t, "ns", pm.Namespace)
@@ -143,7 +142,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				pm := findResourceOrFail[*monitoringv1.PodMonitor](t, r, "PodMonitor", "cronjob--test")
 
 				assert.Equal(t, "ns", pm.Namespace)
@@ -165,7 +164,7 @@ func TestPrometheusMonitors(t *testing.T) {
 		},
 		"does not render service monitor if not specified - nil config": {
 			ValuesTransform: func(dv *DeploymentValues) {},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				_, found := findResource[*monitoringv1.ServiceMonitor](r, "ServiceMonitor", "service--component--test")
 				assert.False(t, found, "Service monitor found when it shouldn't exist")
 			},
@@ -177,7 +176,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					Endpoints: []monitoringv1.Endpoint{},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				_, found := findResource[*monitoringv1.ServiceMonitor](r, "ServiceMonitor", "service--component--test")
 				assert.False(t, found, "Service monitor found when it shouldn't exist")
 			},
@@ -200,7 +199,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				_, found := findResource[*monitoringv1.PodMonitor](r, "PodMonitor", "service--component--test--pre-deploy")
 				assert.False(t, found, "Pod monitor found when it shouldn't exist")
 			},
@@ -227,7 +226,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				_, found := findResource[*monitoringv1.PodMonitor](r, "PodMonitor", "service--component--test--pre-deploy")
 				assert.False(t, found, "Pod monitor found when it shouldn't exist")
 			},
@@ -254,7 +253,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				_, found := findResource[*monitoringv1.PodMonitor](r, "PodMonitor", "cronjob--test")
 				assert.False(t, found, "Pod monitor found when it shouldn't exist")
 			},
@@ -285,7 +284,7 @@ func TestPrometheusMonitors(t *testing.T) {
 					},
 				}
 			},
-			Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+			Asserts: func(t *testing.T, r []NamedResource) {
 				_, found := findResource[*monitoringv1.PodMonitor](r, "PodMonitor", "cronjob--test")
 				assert.False(t, found, "Pod monitor found when it shouldn't exist")
 			},

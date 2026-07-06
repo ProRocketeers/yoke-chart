@@ -54,7 +54,7 @@ func run() error {
 		return fmt.Errorf("error while preparing the deployment values: %v", err)
 	}
 
-	resources, err := collectResources(
+	namedResources, err := collectResources(
 		deploymentValues,
 		resources.CreateMainWorkload,
 		resources.CreateService,
@@ -71,7 +71,6 @@ func run() error {
 		resources.CreateDB,
 		resources.CreateRBAC,
 		resources.CreateConfigMaps,
-		resources.CreateExtraManifests,
 		resources.CreatePrometheusMonitors,
 	)
 
@@ -79,11 +78,24 @@ func run() error {
 		return fmt.Errorf("error while rendering resources: %v", err)
 	}
 
+	outputs := resources.BuildOutputs(namedResources)
+
+	extraManifests, err := resources.RenderExtraManifests(deploymentValues, outputs)
+	if err != nil {
+		return fmt.Errorf("error while rendering extra manifests: %v", err)
+	}
+
+	allResources := make([]unstructured.Unstructured, 0, len(namedResources)+len(extraManifests))
+	for _, nr := range namedResources {
+		allResources = append(allResources, nr.Object)
+	}
+	allResources = append(allResources, extraManifests...)
+
 	jsons := []json.RawMessage{}
 	encoder := k8sjson.NewSerializerWithOptions(
 		k8sjson.DefaultMetaFactory, nil, nil, k8sjson.SerializerOptions{Yaml: false, Strict: true},
 	)
-	for _, r := range resources {
+	for _, r := range allResources {
 		bytes, err := runtime.Encode(encoder, &r)
 		if err != nil {
 			return fmt.Errorf("error while serializing resources: %v", err)
@@ -98,19 +110,19 @@ func run() error {
 	return nil
 }
 
-func collectResources(values resources.DeploymentValues, creators ...func(resources.DeploymentValues) (bool, resources.ResourceCreator)) ([]unstructured.Unstructured, error) {
-	resources := []unstructured.Unstructured{}
+func collectResources(values resources.DeploymentValues, creators ...func(resources.DeploymentValues) (bool, resources.ResourceCreator)) ([]resources.NamedResource, error) {
+	all := []resources.NamedResource{}
 	for _, shouldCreateResource := range creators {
 		if ok, create := shouldCreateResource(values); ok {
 			if newResources, err := create(values); err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			} else {
-				resources = append(resources, newResources...)
+				all = append(all, newResources...)
 			}
 		}
 
 	}
-	return resources, nil
+	return all, nil
 }
 
 func parseFromSource(r io.Reader) (schema.InputValues, error) {

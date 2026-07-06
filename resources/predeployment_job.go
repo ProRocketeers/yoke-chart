@@ -7,11 +7,10 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
-	return values.PreDeploymentJob != nil, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+	return values.PreDeploymentJob != nil, func(values DeploymentValues) ([]NamedResource, error) {
 		j := values.PreDeploymentJob
 		annotations := map[string]string{
 			"helm.sh/hook":        "pre-install, pre-upgrade",
@@ -21,7 +20,7 @@ func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
 
 		podSpec, err := createPodSpec(j, values)
 		if err != nil {
-			return []unstructured.Unstructured{}, fmt.Errorf("error creating pod for pre-deployment job: %v", err)
+			return nil, fmt.Errorf("error creating pod for pre-deployment job: %v", err)
 		}
 		podSpec.RestartPolicy = corev1.RestartPolicyNever
 
@@ -66,8 +65,8 @@ func CreatePreDeploymentJob(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		u, err := toUnstructured(&job)
 		if err != nil {
-			return []unstructured.Unstructured{}, err
+			return nil, err
 		}
-		return u, nil
+		return []NamedResource{{Category: CategoryPreDeploymentJob, Object: u[0]}}, nil
 	}
 }

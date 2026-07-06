@@ -8,20 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func findResource[T metav1.Object](resources []unstructured.Unstructured, kind, name string) (T, bool) {
+func findResource[T metav1.Object](resources []NamedResource, kind, name string) (T, bool) {
 	var (
 		zero  T
 		value T
 	)
 
 	for i, res := range resources {
-		gvk := res.GroupVersionKind()
-		if gvk.Kind == kind && res.GetName() == name {
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(resources[i].Object, &value)
+		gvk := res.Object.GroupVersionKind()
+		if gvk.Kind == kind && res.Object.GetName() == name {
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(resources[i].Object.Object, &value)
 			if err == nil {
 				return value, true
 			}
@@ -30,23 +29,23 @@ func findResource[T metav1.Object](resources []unstructured.Unstructured, kind, 
 	return zero, false
 }
 
-func findResourceOrFail[T metav1.Object](t *testing.T, r []unstructured.Unstructured, kind, name string) T {
+func findResourceOrFail[T metav1.Object](t *testing.T, r []NamedResource, kind, name string) T {
 	t.Helper()
 	res, ok := findResource[T](r, kind, name)
 	require.Truef(t, ok, "%v %v not found", kind, name)
 	return res
 }
 
-func fromUnstructuredOrPanic[T metav1.Object](u unstructured.Unstructured) T {
+func fromUnstructuredOrPanic[T metav1.Object](u NamedResource) T {
 	var value T
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &value)
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object.Object, &value)
 	if err != nil {
 		panic(err)
 	}
 	return value
 }
 
-func fromUnstructuredArrayOrPanic[T metav1.Object](objects []unstructured.Unstructured) (ret []T) {
+func fromUnstructuredArrayOrPanic[T metav1.Object](objects []NamedResource) (ret []T) {
 	for _, obj := range objects {
 		ret = append(ret, fromUnstructuredOrPanic[T](obj))
 	}

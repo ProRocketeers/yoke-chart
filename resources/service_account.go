@@ -3,11 +3,10 @@ package resources
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateServiceAccount(values DeploymentValues) (bool, ResourceCreator) {
-	return true, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+	return true, func(values DeploymentValues) ([]NamedResource, error) {
 		sa := corev1.ServiceAccount{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: corev1.SchemeGroupVersion.Identifier(),
@@ -24,8 +23,8 @@ func CreateServiceAccount(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		u, err := toUnstructured(&sa)
 		if err != nil {
-			return []unstructured.Unstructured{}, err
+			return nil, err
 		}
-		return u, nil
+		return []NamedResource{{Category: CategoryServiceAccount, Object: u[0]}}, nil
 	}
 }

@@ -7,12 +7,11 @@ import (
 	"dario.cat/mergo"
 	postgres "github.com/ProRocketeers/yoke-chart/resources/postgresql"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
-	return values.DB != nil && *values.DB.Enabled, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+	return values.DB != nil && *values.DB.Enabled, func(values DeploymentValues) ([]NamedResource, error) {
 		db := values.DB
 
 		spec := postgres.PostgresSpec{
@@ -46,7 +45,7 @@ func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
 
 		if db.AdditionalConfig != nil {
 			if err := mergo.Merge(&spec, *db.AdditionalConfig, mergo.WithOverride); err != nil {
-				return []unstructured.Unstructured{}, fmt.Errorf("error while merging additional DB config: %v", err)
+				return nil, fmt.Errorf("error while merging additional DB config: %v", err)
 			}
 		}
 
@@ -63,8 +62,8 @@ func CreateDB(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		u, err := toUnstructured(&postgres)
 		if err != nil {
-			return []unstructured.Unstructured{}, err
+			return nil, err
 		}
-		return u, nil
+		return []NamedResource{{Category: CategoryDB, Object: u[0]}}, nil
 	}
 }

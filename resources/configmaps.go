@@ -5,12 +5,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateConfigMaps(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.ConfigMaps) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return len(values.ConfigMaps) > 0, func(values DeploymentValues) ([]NamedResource, error) {
+		resources := []NamedResource{}
 		for name, contents := range values.ConfigMaps {
 			cm := corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
@@ -26,9 +25,9 @@ func CreateConfigMaps(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&cm)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryConfigMaps, Key: name, Object: u[0]})
 		}
 		return resources, nil
 	}

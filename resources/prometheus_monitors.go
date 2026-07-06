@@ -3,7 +3,6 @@ package resources
 import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreatePrometheusMonitors(values DeploymentValues) (bool, ResourceCreator) {
@@ -21,8 +20,8 @@ func CreatePrometheusMonitors(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		return false
 	}()
-	return create, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return create, func(values DeploymentValues) ([]NamedResource, error) {
+		resources := []NamedResource{}
 		if values.ServiceMonitor != nil && *values.ServiceMonitor.Enabled {
 			sm := monitoringv1.ServiceMonitor{
 				TypeMeta: metav1.TypeMeta{
@@ -49,9 +48,9 @@ func CreatePrometheusMonitors(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&sm)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryServiceMonitor, Object: u[0]})
 		}
 		if values.PreDeploymentJob != nil && values.PreDeploymentJob.PodMonitor != nil && *values.PreDeploymentJob.PodMonitor.Enabled {
 			pm := monitoringv1.PodMonitor{
@@ -79,9 +78,9 @@ func CreatePrometheusMonitors(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&pm)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryPreDeploymentPodMonitor, Object: u[0]})
 		}
 		for _, cronjob := range values.Cronjobs {
 			if cronjob.PodMonitor != nil && *cronjob.PodMonitor.Enabled {
@@ -110,9 +109,9 @@ func CreatePrometheusMonitors(values DeploymentValues) (bool, ResourceCreator) {
 				}
 				u, err := toUnstructured(&pm)
 				if err != nil {
-					return []unstructured.Unstructured{}, err
+					return nil, err
 				}
-				resources = append(resources, u...)
+				resources = append(resources, NamedResource{Category: CategoryCronjobPodMonitors, Key: cronjob.Name, Object: u[0]})
 			}
 		}
 		return resources, nil

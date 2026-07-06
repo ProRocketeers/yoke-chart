@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 func CreateHttpRoutes(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.HTTPRoutes) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		var resources []unstructured.Unstructured
+	return len(values.HTTPRoutes) > 0, func(values DeploymentValues) ([]NamedResource, error) {
+		var resources []NamedResource
 		for name, route := range values.HTTPRoutes {
 			httpRoute := gatewayv1.HTTPRoute{
 				TypeMeta: metav1.TypeMeta{
@@ -28,9 +27,9 @@ func CreateHttpRoutes(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&httpRoute)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryHTTPRoutes, Key: name, Object: u[0]})
 		}
 		return resources, nil
 	}

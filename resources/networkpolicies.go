@@ -5,12 +5,11 @@ import (
 
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateNetworkPolicies(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.NetworkPolicies) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		var resources []unstructured.Unstructured
+	return len(values.NetworkPolicies) > 0, func(values DeploymentValues) ([]NamedResource, error) {
+		var resources []NamedResource
 		for name, spec := range values.NetworkPolicies {
 			np := networkingv1.NetworkPolicy{
 				TypeMeta: metav1.TypeMeta{
@@ -26,9 +25,9 @@ func CreateNetworkPolicies(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&np)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryNetworkPolicies, Key: name, Object: u[0]})
 		}
 		return resources, nil
 	}

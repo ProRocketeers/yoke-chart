@@ -14,6 +14,88 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.10.0] - 2026-07-06
+
+### :star: Added
+#### Templates in `extraManifests`
+- previous implementation of `extraManifests` more or less returned, but with better options and some extra guardrails
+- now, any **string**, **leaf** node/property (e.g. string values in arrays, string properties) can be templated with `{{ }}` Go templates
+- e.g.
+```yaml
+extraManifests:
+  - apiVersion: gateway.kgateway.dev/v1alpha1
+    kind: TrafficPolicy
+    metadata:
+      name: proxy-body-size
+      namespace: "{{ .Values.Metadata.Namespace }}"
+    spec:
+      targetRefs:
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          name: "{{ .Outputs.HTTPRoutes.main.Name }}"
+      buffer:
+        maxRequestSize: 50Mi
+```
+- this is very useful for referencing either values used in the chart itself (`.Values`), or the actual created resources by the chart (we only collect name and namespace) - `.Outputs`, without having to know the actual patterns or templates for the names
+##### Guardrails
+- all control flow nodes such as `{{if}}`, `{{range}}`, `{{with}}`, `{{template}}`, `{{define}}`, `{{block}}`, `{{break}}` or `{{continue}}`  are rejected and an error is thrown
+- due to technical constraints, only string nodes can be templated (not booleans or numbers)
+##### Functions
+- you can use functions in the templates and compose them into pipelines with `|`
+- currently available are all functions from Go's `text/template`, plus a deterministic subset of Sprig's functions
+  - some Sprig functions are excluded even beyond Sprig's own "hermetic" labeling, since a few of those still depend on the clock or on randomness internally (e.g. `ago`, `randInt`, `genPrivateKey`) - rendering must stay reproducible, or ArgoCD would see a diff (or worse) on every sync
+  - excluded entirely (non-deterministic - reads the clock, randomness, environment or network): `now`, `date`, `dateInZone`, `dateModify`, `date_in_zone`, `date_modify`, `htmlDate`, `htmlDateInZone`, `ago`, `randAlphaNum`, `randAlpha`, `randAscii`, `randNumeric`, `randBytes`, `randInt`, `shuffle`, `uuidv4`, `env`, `expandenv`, `getHostByName`, `bcrypt`, `htpasswd`, `genPrivateKey`, `genCA`, `genCAWithKey`, `genSelfSignedCert`, `genSelfSignedCertWithKey`, `genSignedCert`, `genSignedCertWithKey`, `encryptAES`
+
+| Category                     | Functions                                                                                                                                                                                                                                                                                                                                                                                                       |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Go `text/template` built-ins | `and`, `or`, `not`, `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `len`, `index`, `slice`, `call`, `print`, `printf`, `println`, `html`, `js`, `urlquery`                                                                                                                                                                                                                                                                 |
+| Chart-specific               | `serviceName(metadata)`                                                                                                                                                                                                                                                                                                                                                                                         |
+| Strings                      | `abbrev`, `abbrevboth`, `trunc`, `trim`, `upper`, `lower`, `title`, `untitle`, `substr`, `repeat`, `trimAll`, `trimSuffix`, `trimPrefix`, `nospace`, `initials`, `swapcase`, `snakecase`, `camelcase`, `kebabcase`, `wrap`, `wrapWith`, `contains`, `hasPrefix`, `hasSuffix`, `quote`, `squote`, `cat`, `indent`, `nindent`, `replace`, `plural`, `sha1sum`, `sha256sum`, `sha512sum`, `adler32sum`, `toString` |
+| String lists                 | `split`, `splitList`, `splitn`, `toStrings`, `join`, `sortAlpha`                                                                                                                                                                                                                                                                                                                                                |
+| Integer/float math           | `atoi`, `int`, `int64`, `float64`, `seq`, `toDecimal`, `add1`, `add`, `sub`, `div`, `mod`, `mul`, `add1f`, `addf`, `subf`, `divf`, `mulf`, `max`, `min`, `maxf`, `minf`, `ceil`, `floor`, `round`, `biggest`                                                                                                                                                                                                    |
+| Dates (fixed input only)     | `duration`, `durationRound`, `toDate`, `mustToDate`, `mustDateModify`, `unixEpoch`                                                                                                                                                                                                                                                                                                                              |
+| Defaults / logic             | `default`, `empty`, `coalesce`, `all`, `any`, `ternary`, `compact`, `mustCompact`                                                                                                                                                                                                                                                                                                                               |
+| Encoding                     | `b64enc`, `b64dec`, `b32enc`, `b32dec`, `toJson`, `toPrettyJson`, `toRawJson`, `fromJson`, `mustToJson`, `mustToPrettyJson`, `mustToRawJson`, `mustFromJson`                                                                                                                                                                                                                                                    |
+| Lists                        | `list`, `tuple`, `first`, `mustFirst`, `rest`, `mustRest`, `last`, `mustLast`, `initial`, `mustInitial`, `reverse`, `mustReverse`, `uniq`, `mustUniq`, `without`, `mustWithout`, `has`, `mustHas`, `slice`, `mustSlice`, `concat`, `append`/`push`, `mustAppend`/`mustPush`, `prepend`, `mustPrepend`, `chunk`, `mustChunk`                                                                                     |
+| Dictionaries                 | `dict`, `get`, `set`, `unset`, `hasKey`, `pluck`, `keys`, `pick`, `omit`, `merge`, `mergeOverwrite`, `mustMerge`, `mustMergeOverwrite`, `values`, `dig`, `deepCopy`, `mustDeepCopy`                                                                                                                                                                                                                             |
+| Reflection                   | `typeOf`, `typeIs`, `typeIsLike`, `kindOf`, `kindIs`, `deepEqual`                                                                                                                                                                                                                                                                                                                                               |
+| Paths                        | `base`, `dir`, `clean`, `ext`, `isAbs`, `osBase`, `osClean`, `osDir`, `osExt`, `osIsAbs`                                                                                                                                                                                                                                                                                                                        |
+| Crypto (deterministic only)  | `derivePassword`, `decryptAES`                                                                                                                                                                                                                                                                                                                                                                                  |
+| SemVer                       | `semver`, `semverCompare`                                                                                                                                                                                                                                                                                                                                                                                       |
+| Regex                        | `regexMatch`, `mustRegexMatch`, `regexFindAll`, `mustRegexFindAll`, `regexFind`, `mustRegexFind`, `regexReplaceAll`, `mustRegexReplaceAll`, `regexReplaceAllLiteral`, `mustRegexReplaceAllLiteral`, `regexSplit`, `mustRegexSplit`, `regexQuoteMeta`                                                                                                                                                            |
+| URLs                         | `urlParse`, `urlJoin`                                                                                                                                                                                                                                                                                                                                                                                           |
+| Flow control                 | `fail`                                                                                                                                                                                                                                                                                                                                                                                                          |
+
+##### Values
+- the root context `.` only contains `.Values` (the deployment values, after passing the `setup.go`, **NOT** input values), and `.Outputs` (see below)
+- every field is either a single `{Name, Namespace, Kind}` reference, or (for resources that can be created multiple times) a map of those keyed the same way you named them in your values - singular fields are absent (`nil`) if that resource wasn't created, map fields are always present but empty if nothing of that kind was created
+
+| `.Outputs` Field                     | Shape                                   | References                                                                  |
+|--------------------------------------|-----------------------------------------|-----------------------------------------------------------------------------|
+| `Workload`                           | single                                  | the main `Deployment` or `StatefulSet`                                      |
+| `HeadlessService`                    | single                                  | the headless `Service` created alongside a `StatefulSet`                    |
+| `Service`                            | single                                  | the main `Service`                                                          |
+| `Ingress`                            | single                                  | the `Ingress`                                                               |
+| `ServiceAccount`                     | single                                  | the `ServiceAccount`                                                        |
+| `PreDeploymentJob`                   | single                                  | the pre-deployment `Job`                                                    |
+| `HPA`                                | single                                  | the `HorizontalPodAutoscaler`                                               |
+| `PDB`                                | single                                  | the `PodDisruptionBudget`                                                   |
+| `DB`                                 | single                                  | the `postgresql` resource                                                   |
+| `Role` / `RoleBinding`               | single                                  | `serviceAccount.additionalRole`'s `Role`/`RoleBinding`                      |
+| `ClusterRole` / `ClusterRoleBinding` | single                                  | `serviceAccount.additionalClusterRole`'s `ClusterRole`/`ClusterRoleBinding` |
+| `ServiceMonitor`                     | single                                  | the `ServiceMonitor`                                                        |
+| `PreDeploymentPodMonitor`            | single                                  | the pre-deployment job's `PodMonitor`                                       |
+| `HTTPRoutes`                         | map, keyed by `httpRoutes.<name>`       | each `HTTPRoute`                                                            |
+| `NetworkPolicies`                    | map, keyed by `networkPolicies.<name>`  | each `NetworkPolicy`                                                        |
+| `ConfigMaps`                         | map, keyed by `configMaps.<name>`       | each `ConfigMap`                                                            |
+| `PVCs`                               | map, keyed by the generated PVC name    | each `PersistentVolumeClaim`                                                |
+| `Cronjobs`                           | map, keyed by `cronjobs[].name`         | each `CronJob`                                                              |
+| `CronjobPodMonitors`                 | map, keyed by `cronjobs[].name`         | each cronjob's `PodMonitor`                                                 |
+| `ExternalSecrets`                    | map, keyed by the generated secret name | each `ExternalSecret`                                                       |
+
+### :hammer_and_wrench: Fixed
+- version 1.9.0 forgot to update the chart's version (that gets rendered in labels)
+
 ## [1.9.0] - 2026-07-05
 
 ### :star: Added
@@ -213,11 +295,12 @@ For clarity we use following emoji for the changes:
     - if you happened to reuse an `ExternalSecret` by referencing the generated name, it was previously truncated to 63 characters
     - now you can use the full name as it was intended - `{service}--{component}--{env}--{secretStoreName}--{pathToSecret}`
 
-## [1.0.0] - 2025-09-19
+## [1.0.0] - 2025--19
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.9.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.10.0...HEAD
+[1.10.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.9.0...1.10.0
 [1.9.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.2...1.9.0
 [1.8.2]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.1...1.8.2
 [1.8.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.0...1.8.1

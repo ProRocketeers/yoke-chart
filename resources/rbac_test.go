@@ -8,14 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 )
 
 func TestRBAC(t *testing.T) {
 	type CaseConfig struct {
 		ValuesTransform func(*DeploymentValues)
-		Asserts         func(*testing.T, []unstructured.Unstructured)
+		Asserts         func(*testing.T, []NamedResource)
 	}
 
 	cases := map[string]func() CaseConfig{
@@ -34,7 +33,7 @@ func TestRBAC(t *testing.T) {
 						},
 					}
 				},
-				Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+				Asserts: func(t *testing.T, r []NamedResource) {
 					require.Len(t, r, 2)
 
 					roleName := "service--component--test--role"
@@ -65,7 +64,7 @@ func TestRBAC(t *testing.T) {
 						},
 					}
 				},
-				Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+				Asserts: func(t *testing.T, r []NamedResource) {
 					require.Len(t, r, 2)
 
 					roleName := "service--component--test--cluster-role"
@@ -98,7 +97,7 @@ func TestRBAC(t *testing.T) {
 						},
 					}
 				},
-				Asserts: func(t *testing.T, r []unstructured.Unstructured) {
+				Asserts: func(t *testing.T, r []NamedResource) {
 					require.Len(t, r, 2)
 
 					findResourceOrFail[*rbacv1.ClusterRole](t, r, "ClusterRole", name)

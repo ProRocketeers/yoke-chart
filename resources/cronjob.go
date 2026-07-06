@@ -7,17 +7,16 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
-	return len(values.Cronjobs) > 0, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return len(values.Cronjobs) > 0, func(values DeploymentValues) ([]NamedResource, error) {
+		resources := []NamedResource{}
 
 		for _, c := range values.Cronjobs {
 			podSpec, err := createPodSpec(&c, values)
 			if err != nil {
-				return []unstructured.Unstructured{}, fmt.Errorf("error creating pod for cronjob '%v': %v", c.Name, err)
+				return nil, fmt.Errorf("error creating pod for cronjob '%v': %v", c.Name, err)
 			}
 
 			podSpec.RestartPolicy = corev1.RestartPolicyOnFailure
@@ -80,9 +79,9 @@ func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
 			}
 			u, err := toUnstructured(&cronjob)
 			if err != nil {
-				return []unstructured.Unstructured{}, err
+				return nil, err
 			}
-			resources = append(resources, u...)
+			resources = append(resources, NamedResource{Category: CategoryCronjobs, Key: c.Name, Object: u[0]})
 		}
 		return resources, nil
 	}

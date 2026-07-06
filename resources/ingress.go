@@ -3,12 +3,11 @@ package resources
 import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateIngress(values DeploymentValues) (bool, ResourceCreator) {
 	enabled := values.Ingress != nil && *values.Ingress.Enabled
-	return enabled, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
+	return enabled, func(values DeploymentValues) ([]NamedResource, error) {
 		ingress := networkingv1.Ingress{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: networkingv1.SchemeGroupVersion.Identifier(),
@@ -24,8 +23,8 @@ func CreateIngress(values DeploymentValues) (bool, ResourceCreator) {
 		}
 		u, err := toUnstructured(&ingress)
 		if err != nil {
-			return []unstructured.Unstructured{}, err
+			return nil, err
 		}
-		return u, nil
+		return []NamedResource{{Category: CategoryIngress, Object: u[0]}}, nil
 	}
 }

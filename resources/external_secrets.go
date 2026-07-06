@@ -9,7 +9,6 @@ import (
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func CreateExternalSecrets(values DeploymentValues) (bool, ResourceCreator) {
@@ -21,11 +20,11 @@ func CreateExternalSecrets(values DeploymentValues) (bool, ResourceCreator) {
 			break
 		}
 	}
-	return create, func(values DeploymentValues) ([]unstructured.Unstructured, error) {
-		resources := []unstructured.Unstructured{}
+	return create, func(values DeploymentValues) ([]NamedResource, error) {
+		resources := []NamedResource{}
 		containers := getAllContainers(values)
 		if hasDuplicateExternalSecrets(containers, values.Metadata) {
-			return []unstructured.Unstructured{}, fmt.Errorf("duplicate external secret paths in multiple containers")
+			return nil, fmt.Errorf("duplicate external secret paths in multiple containers")
 		}
 		for _, container := range containers {
 			for _, definition := range container.ExternalSecrets {
@@ -110,9 +109,9 @@ func CreateExternalSecrets(values DeploymentValues) (bool, ResourceCreator) {
 					}
 					u, err := toUnstructured(&secret)
 					if err != nil {
-						return []unstructured.Unstructured{}, err
+						return nil, err
 					}
-					resources = append(resources, u...)
+					resources = append(resources, NamedResource{Category: CategoryExternalSecrets, Key: secretName, Object: u[0]})
 				}
 			}
 		}

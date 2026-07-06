@@ -192,4 +192,43 @@ func (v *Cronjob) GetPodValues() PodValues {
 	}
 }
 
-type ResourceCreator func(DeploymentValues) ([]unstructured.Unstructured, error)
+// ResourceCategory identifies which logical part of the chart a resource belongs to, used to
+// group resources into Outputs. Not just Kind: some categories share a Kind (e.g. the
+// pre-deployment job's PodMonitor vs. a cronjob's PodMonitor) while others (Workload) can be
+// one of several Kinds (Deployment or StatefulSet) depending on config.
+type ResourceCategory string
+
+const (
+	CategoryWorkload                ResourceCategory = "Workload"
+	CategoryHeadlessService         ResourceCategory = "HeadlessService"
+	CategoryService                 ResourceCategory = "Service"
+	CategoryIngress                 ResourceCategory = "Ingress"
+	CategoryServiceAccount          ResourceCategory = "ServiceAccount"
+	CategoryPreDeploymentJob        ResourceCategory = "PreDeploymentJob"
+	CategoryHPA                     ResourceCategory = "HPA"
+	CategoryPDB                     ResourceCategory = "PDB"
+	CategoryDB                      ResourceCategory = "DB"
+	CategoryRole                    ResourceCategory = "Role"
+	CategoryRoleBinding             ResourceCategory = "RoleBinding"
+	CategoryClusterRole             ResourceCategory = "ClusterRole"
+	CategoryClusterRoleBinding      ResourceCategory = "ClusterRoleBinding"
+	CategoryServiceMonitor          ResourceCategory = "ServiceMonitor"
+	CategoryPreDeploymentPodMonitor ResourceCategory = "PreDeploymentPodMonitor"
+	CategoryHTTPRoutes              ResourceCategory = "HTTPRoutes"
+	CategoryNetworkPolicies         ResourceCategory = "NetworkPolicies"
+	CategoryConfigMaps              ResourceCategory = "ConfigMaps"
+	CategoryPVCs                    ResourceCategory = "PVCs"
+	CategoryCronjobs                ResourceCategory = "Cronjobs"
+	CategoryCronjobPodMonitors      ResourceCategory = "CronjobPodMonitors"
+	CategoryExternalSecrets         ResourceCategory = "ExternalSecrets"
+)
+
+// NamedResource pairs a created object with its logical Category and, for map-keyed resources
+// (e.g. the HTTPRoute name), its Key. Key is empty for singular resources.
+type NamedResource struct {
+	Category ResourceCategory
+	Key      string
+	Object   unstructured.Unstructured
+}
+
+type ResourceCreator func(DeploymentValues) ([]NamedResource, error)
