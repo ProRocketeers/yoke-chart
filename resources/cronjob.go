@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 
+	"dario.cat/mergo"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +22,46 @@ func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
 
 			podSpec.RestartPolicy = corev1.RestartPolicyOnFailure
 
+			jobSpec := batchv1.JobSpec{
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: c.PodAnnotations,
+						Labels: func() map[string]string {
+							m := map[string]string{}
+							maps.Copy(m, c.PodLabels)
+							if c.PodMonitor != nil && *c.PodMonitor.Enabled {
+								m["app"] = cronjobName(c)
+								m["prometheus-scrape"] = "true"
+							}
+							return m
+						}(),
+					},
+					Spec: podSpec,
+				},
+			}
+			if c.JobSpec != nil {
+				if err := mergo.Merge(&jobSpec, *c.JobSpec, mergo.WithOverride); err != nil {
+					return nil, fmt.Errorf("merging raw jobSpec for cronjob '%v': %v", c.Name, err)
+				}
+			}
+
+			cronJobSpec := batchv1.CronJobSpec{
+				Schedule: c.Schedule,
+				JobTemplate: batchv1.JobTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: c.JobAnnotations,
+						Labels:      withCommonLabels(c.JobLabels, c.Metadata),
+					},
+					Spec: jobSpec,
+				},
+				ConcurrencyPolicy: batchv1.AllowConcurrent,
+			}
+			if c.CronJobSpec != nil {
+				if err := mergo.Merge(&cronJobSpec, *c.CronJobSpec, mergo.WithOverride); err != nil {
+					return nil, fmt.Errorf("merging raw cronJobSpec for cronjob '%v': %v", c.Name, err)
+				}
+			}
+
 			cronjob := batchv1.CronJob{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: batchv1.SchemeGroupVersion.Identifier(),
@@ -32,50 +73,7 @@ func CreateCronjobs(values DeploymentValues) (bool, ResourceCreator) {
 					Labels:      withCommonLabels(c.CronJobLabels, c.Metadata),
 					Annotations: c.CronJobAnnotations,
 				},
-				Spec: batchv1.CronJobSpec{
-					JobTemplate: batchv1.JobTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: c.JobAnnotations,
-							Labels:      withCommonLabels(c.JobLabels, c.Metadata),
-						},
-						Spec: batchv1.JobSpec{
-							Template: corev1.PodTemplateSpec{
-								ObjectMeta: metav1.ObjectMeta{
-									Annotations: c.PodAnnotations,
-									Labels: func() map[string]string {
-										m := map[string]string{}
-										maps.Copy(m, c.PodLabels)
-										if c.PodMonitor != nil && *c.PodMonitor.Enabled {
-											m["app"] = cronjobName(c)
-											m["prometheus-scrape"] = "true"
-										}
-										return m
-									}(),
-								},
-								Spec: podSpec,
-							},
-
-							ActiveDeadlineSeconds:   c.ActiveDeadlineSeconds,
-							BackoffLimit:            c.BackoffLimit,
-							CompletionMode:          c.CompletionMode,
-							Completions:             c.Completions,
-							Parallelism:             c.Parallelism,
-							PodFailurePolicy:        c.PodFailurePolicy,
-							Selector:                c.Selector,
-							TTLSecondsAfterFinished: c.TTLSecondsAfterFinished,
-						},
-					},
-					Schedule:                   c.Schedule,
-					Suspend:                    c.Suspend,
-					TimeZone:                   c.TimeZone,
-					ConcurrencyPolicy:          batchv1.AllowConcurrent,
-					StartingDeadlineSeconds:    c.StartingDeadlineSeconds,
-					SuccessfulJobsHistoryLimit: c.SuccessfulJobsHistoryLimit,
-					FailedJobsHistoryLimit:     c.FailedJobsHistoryLimit,
-				},
-			}
-			if c.ConcurrencyPolicy != nil {
-				cronjob.Spec.ConcurrencyPolicy = *c.ConcurrencyPolicy
+				Spec: cronJobSpec,
 			}
 			u, err := toUnstructured(&cronjob)
 			if err != nil {

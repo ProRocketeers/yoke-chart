@@ -48,6 +48,22 @@ ports:
     # must be in the range of 30000 - 32767 and not used by any other Service port
     nodePort: 31000
 
+# Merge semantics for all "escape hatch" fields below (`containerSpec`, `podSpec`, `deploymentSpec`,
+# `statefulSetSpec`, `cronJobSpec`, `jobSpec`): the Flight builds the resource from the regular values
+# first (exactly as it does without the escape hatch), then merges what you put here *on top*, field by
+# field. Any field you explicitly set here wins over what the Flight computed - including fields the
+# Flight relies on internally (e.g. `containers`, `selector`, `template`) - so it's possible to override
+# your way into a broken chart. That's intentional: these are meant as an escape hatch of last resort,
+# not a first choice. Two merge quirks worth knowing: scalars/objects/arrays you set here fully replace
+# the Flight's computed value, but map fields (like `nodeSelector`) merge key-by-key instead.
+#
+# `containerSpec` - escape hatch: full Kubernetes `Container` spec for the main container. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
+# useful for fields with no dedicated value, like `workingDir` or `startupProbe`.
+# also available on `sidecars.<name>`, `initContainers[]`, `preDeploymentJob` and `cronjobs[]` (each scoped
+# to that container)
+containerSpec: {}
+
 serviceConfig:
   # `serviceConfig.type` - changes the main deployment's Service type. OPTIONAL - defaults to ClusterIP
   # NOTE: if any port has `nodePort` specified, and `serviceConfig.type: ClusterIP` or empty, then this is automatically overridden to `NodePort`
@@ -91,6 +107,11 @@ externalSecrets:
       kind: ClusterSecretStore
     # refresh interval of the created ExternalSecret. OPTIONAL - defaults to 1 minute
     refreshInterval: 1m
+    # `creationPolicy`/`deletionPolicy` - control what the ExternalSecret does to the underlying Secret
+    # it manages. OPTIONAL - default `Owner`/`Delete` (one of `Owner`/`Orphan`/`Merge`/`None`, and
+    # `Delete`/`Merge`/`Retain` respectively)
+    creationPolicy: Owner
+    deletionPolicy: Delete
     mapping:
       # Path to the secret - prefix `secret/` is omitted
       path/to/secret:
@@ -316,6 +337,16 @@ volumes:
     storageClassName: hpe-storage
     # `volume.volumeMode` - type of the volume - Filesystem/Block. OPTIONAL - default `Filesystem`
     volumeMode: Filesystem # optional, default "Filesystem"
+    # `volume.dataSource`/`volume.dataSourceRef` - provision the PVC from an existing PVC (clone) or a
+    # VolumeSnapshot. OPTIONAL - neither is derived from the other, set whichever (or both) your CSI
+    # driver/webhook expects
+    dataSource:
+      kind: VolumeSnapshot
+      name: my-snapshot
+      apiGroup: snapshot.storage.k8s.io
+    dataSourceRef:
+      kind: PersistentVolumeClaim
+      name: my-source-pvc
     # or
     # existing: true
     # `volume.pvcName` - name of the PersistentVolumeClaim to mount
@@ -370,10 +401,17 @@ sidecars: # optional
 # `kind` - specifies, if the main workload is a Deployment (default, also accepted value), or StatefulSet. OPTIONAL - default `Deployment`
 kind: StatefulSet
 
-# `statefulSet` - full `StatefulSetSpec` specification as specified by Kubernetes. https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/stateful-set-v1/#StatefulSetSpec
-# NOTE - some fields are ignored, as they are templated/generated/prepopulated by the Flight - `serviceName`, `selector`, `template`, `replicas`
+# `statefulSetSpec` - escape hatch: full `StatefulSetSpec` as described by Kubernetes. OPTIONAL - only used when `kind: StatefulSet`
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/stateful-set-v1/#StatefulSetSpec
+# same merge semantics as `containerSpec` above (including `serviceName`/`selector`/`template`/`replicas`)
 # the headless Service for the StatefulSet is also generated for you
-statefulSet: {}
+statefulSetSpec: {}
+
+# `deploymentSpec` - escape hatch: full `DeploymentSpec` as described by Kubernetes. OPTIONAL - only used when `kind: Deployment` (the default)
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec
+# same merge semantics as `containerSpec` above. Useful for fields with no dedicated value, like
+# `minReadySeconds`, `revisionHistoryLimit` or `progressDeadlineSeconds`
+deploymentSpec: {}
 
 # used for scraping metrics from the main deployment
 serviceMonitor:
@@ -431,6 +469,11 @@ preDeploymentJob:
   # see above
   volumes: {}
 
+  # escape hatches, same merge semantics as the root-level `containerSpec`/`podSpec` (see above),
+  # scoped to this job's main container / Pod respectively
+  containerSpec: {}
+  podSpec: {}
+
   # similar to main deployment ServiceMonitor, this monitors specifically the job and its Pods
   # NOTE: these pods are usually very short lived, on the order of seconds to minutes at most
   # take in consideration if it's even useful to scrape or not, and if so - set a short interval and scrape timeout
@@ -447,16 +490,20 @@ preDeploymentJob:
         honorLabels: false
         honorTimestamps: true
   
-  # optionally, rest of Kubernetes Job spec (except `template`)
-  activeDeadlineSeconds: null
-  backoffLimit: null
-  completionMode: null
-  completions: null
-  parallelism: null
-  podFailurePolicy: null
-  selector: null
-  suspend: null
-  ttlSecondsAfterFinished: null
+  # `jobSpec` - escape hatch: full Kubernetes `JobSpec`. OPTIONAL
+  # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/job-v1/#JobSpec
+  # the Flight builds `template` itself first, then layers this on top - same merge semantics as the
+  # root-level `containerSpec` above
+  jobSpec:
+    activeDeadlineSeconds: null
+    backoffLimit: null
+    completionMode: null
+    completions: null
+    parallelism: null
+    podFailurePolicy: null
+    selector: null
+    suspend: null
+    ttlSecondsAfterFinished: null
 
 
 # `annotations` - key-value object of the Deployment's annotations. OPTIONAL
@@ -508,6 +555,21 @@ tolerations: []
 # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodAntiAffinity
 affinity: {}
 
+# `topologySpreadConstraints` - array of TopologySpreadConstraints as described by Kubernetes. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#TopologySpreadConstraint
+topologySpreadConstraints: []
+
+# `priorityClassName` - name of an existing PriorityClass to assign to the Pod. OPTIONAL
+priorityClassName: ''
+
+# `podSpec` - escape hatch: full Kubernetes `PodSpec` for the main workload's Pod. OPTIONAL
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
+# same merge semantics as `containerSpec` above. Useful for fields with no dedicated value, like
+# `terminationGracePeriodSeconds` or `dnsPolicy`/`dnsConfig`. `podSpec.priorityClassName` and
+# `podSpec.topologySpreadConstraints` win over the dedicated fields above if both are set.
+# also available on `preDeploymentJob` and `cronjobs[]` (each scoped to that Job's Pod)
+podSpec: {}
+
 # `db` - renders a Zalando Postgres cluster
 db:
   enabled: false
@@ -544,6 +606,11 @@ cronjobs:
     initContainers: []
     volumes: {}
 
+    # escape hatches, same merge semantics as the root-level `containerSpec`/`podSpec` (see above),
+    # scoped to this cronjob's main container / Pod respectively
+    containerSpec: {}
+    podSpec: {}
+
     # same as `preDeploymentJob.podMonitor`
     podMonitor:
       enabled: true
@@ -563,23 +630,29 @@ cronjobs:
     podAnnotations: {}
     podLabels: {}
     
-    # overrides for CronJobSpec
-    suspend: false
-    timeZone: Europe/Prague
-    concurrencyPolicy: Forbid
-    startingDeadlineSeconds: 5
-    successfulJobsHistoryLimit: 5
-    failedJobsHistoryLimit: 2
+    # `cronJobSpec` - escape hatch: full Kubernetes `CronJobSpec` (except `jobTemplate`, see `jobSpec` below). OPTIONAL
+    # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/cron-job-v1/#CronJobSpec
+    # the Flight builds `schedule`/`jobTemplate` itself first, then layers this on top - same merge
+    # semantics as the root-level `containerSpec` above. `concurrencyPolicy` defaults to `Allow` if unset.
+    cronJobSpec:
+      suspend: false
+      timeZone: Europe/Prague
+      concurrencyPolicy: Forbid
+      startingDeadlineSeconds: 5
+      successfulJobsHistoryLimit: 5
+      failedJobsHistoryLimit: 2
 
-    # overrides for JobSpec
-    activeDeadlineSeconds: null
-    backoffLimit: null
-    completionMode: null
-    completions: null
-    parallelism: null
-    podFailurePolicy: null
-    selector: null
-    ttlSecondsAfterFinished: null
+    # `jobSpec` - escape hatch: full Kubernetes `JobSpec` for the Job this CronJob creates. OPTIONAL
+    # split from `cronJobSpec` because `CronJobSpec` and `JobSpec` both have their own `suspend` field
+    jobSpec:
+      activeDeadlineSeconds: null
+      backoffLimit: null
+      completionMode: null
+      completions: null
+      parallelism: null
+      podFailurePolicy: null
+      selector: null
+      ttlSecondsAfterFinished: null
     
 configMaps:
   # this sets the name of the ConfigMap and gets templated as `{service}--{component}--{env}-{name}`

@@ -3,6 +3,7 @@ package resources
 import (
 	"fmt"
 
+	"dario.cat/mergo"
 	"github.com/ProRocketeers/yoke-chart/schema"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
@@ -31,6 +32,13 @@ func createContainer(c Container, podValues PodValues) (corev1.Container, error)
 	if c.Resources != nil {
 		container.Resources = *c.Resources
 	}
+
+	if c.ContainerSpec != nil {
+		if err := mergo.Merge(&container, *c.ContainerSpec, mergo.WithOverride); err != nil {
+			return corev1.Container{}, fmt.Errorf("merging raw containerSpec for container '%v': %v", c.Name, err)
+		}
+	}
+
 	return container, nil
 }
 

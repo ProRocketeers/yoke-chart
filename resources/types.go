@@ -3,6 +3,7 @@ package resources
 import (
 	"github.com/ProRocketeers/yoke-chart/schema"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -40,11 +41,13 @@ type DeploymentValues struct {
 
 	SchedulingConfig   schema.SchedulingConfig
 	PodSecurityContext *corev1.PodSecurityContext
+	PodSpec            *corev1.PodSpec
 
 	ExtraManifests []unstructured.Unstructured
 
-	Kind        string
-	StatefulSet *appsv1.StatefulSetSpec
+	Kind            string
+	StatefulSetSpec *appsv1.StatefulSetSpec
+	DeploymentSpec  *appsv1.DeploymentSpec
 }
 
 type Metadata struct {
@@ -75,6 +78,7 @@ type Container struct {
 	LivenessProbe   *corev1.Probe
 	Lifecycle       *corev1.Lifecycle
 	SecurityContext *corev1.SecurityContext
+	ContainerSpec   *corev1.Container
 }
 
 type Image struct {
@@ -95,9 +99,10 @@ type PreDeploymentJob struct {
 	PodLabels          map[string]string
 	PodMonitor         *schema.PodMonitor
 	PodSecurityContext *corev1.PodSecurityContext
+	PodSpec            *corev1.PodSpec
 	SchedulingConfig   schema.SchedulingConfig
 
-	schema.JobSpec
+	JobSpec *batchv1.JobSpec
 }
 
 type Cronjob struct {
@@ -109,6 +114,7 @@ type Cronjob struct {
 	Volumes            map[string]schema.Volume
 	PodMonitor         *schema.PodMonitor
 	PodSecurityContext *corev1.PodSecurityContext
+	PodSpec            *corev1.PodSpec
 
 	CronJobAnnotations map[string]string
 	CronJobLabels      map[string]string
@@ -118,7 +124,8 @@ type Cronjob struct {
 	PodLabels          map[string]string
 	SchedulingConfig   schema.SchedulingConfig
 
-	schema.CronJobAdditionalFields
+	CronJobSpec *batchv1.CronJobSpec
+	JobSpec     *batchv1.JobSpec
 }
 
 // common interface of the Pods from Deployment, Job and CronJobs
@@ -130,6 +137,7 @@ type PodValues struct {
 	Volumes            map[string]schema.Volume
 	PodSecurityContext *corev1.PodSecurityContext
 	SchedulingConfig   schema.SchedulingConfig
+	RawPodSpec         *corev1.PodSpec
 }
 
 type PodValuesExtractor interface {
@@ -163,6 +171,7 @@ func (v *DeploymentValues) GetPodValues() PodValues {
 		Volumes:            v.Volumes,
 		PodSecurityContext: v.PodSecurityContext,
 		SchedulingConfig:   v.SchedulingConfig,
+		RawPodSpec:         v.PodSpec,
 	}
 }
 
@@ -176,6 +185,7 @@ func (v *PreDeploymentJob) GetPodValues() PodValues {
 		Volumes:            v.Volumes,
 		PodSecurityContext: v.PodSecurityContext,
 		SchedulingConfig:   v.SchedulingConfig,
+		RawPodSpec:         v.PodSpec,
 	}
 }
 
@@ -189,6 +199,7 @@ func (v *Cronjob) GetPodValues() PodValues {
 		Volumes:            v.Volumes,
 		PodSecurityContext: v.PodSecurityContext,
 		SchedulingConfig:   v.SchedulingConfig,
+		RawPodSpec:         v.PodSpec,
 	}
 }
 

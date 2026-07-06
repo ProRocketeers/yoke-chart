@@ -3,6 +3,7 @@ package resources
 import (
 	"fmt"
 
+	"dario.cat/mergo"
 	"github.com/ProRocketeers/yoke-chart/schema"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
@@ -35,16 +36,27 @@ func createPodSpec(podValuesExtractor PodValuesExtractor, values DeploymentValue
 		return corev1.PodSpec{}, fmt.Errorf("preparing pod volumes: %v", err)
 	}
 	podSpec := corev1.PodSpec{
-		ImagePullSecrets:   podValues.ImagePullSecrets,
-		InitContainers:     initContainers,
-		ServiceAccountName: serviceName(values.Metadata),
-		Containers:         containers,
-		NodeSelector:       podValues.SchedulingConfig.NodeSelector,
-		Affinity:           podValues.SchedulingConfig.Affinity,
-		Tolerations:        podValues.SchedulingConfig.Tolerations,
-		Volumes:            volumes,
-		SecurityContext:    podValues.PodSecurityContext,
+		ImagePullSecrets:          podValues.ImagePullSecrets,
+		InitContainers:            initContainers,
+		ServiceAccountName:        serviceName(values.Metadata),
+		Containers:                containers,
+		NodeSelector:              podValues.SchedulingConfig.NodeSelector,
+		Affinity:                  podValues.SchedulingConfig.Affinity,
+		Tolerations:               podValues.SchedulingConfig.Tolerations,
+		TopologySpreadConstraints: podValues.SchedulingConfig.TopologySpreadConstraints,
+		Volumes:                   volumes,
+		SecurityContext:           podValues.PodSecurityContext,
 	}
+	if podValues.SchedulingConfig.PriorityClassName != nil {
+		podSpec.PriorityClassName = *podValues.SchedulingConfig.PriorityClassName
+	}
+
+	if podValues.RawPodSpec != nil {
+		if err := mergo.Merge(&podSpec, *podValues.RawPodSpec, mergo.WithOverride); err != nil {
+			return corev1.PodSpec{}, fmt.Errorf("merging raw podSpec: %v", err)
+		}
+	}
+
 	return podSpec, nil
 }
 

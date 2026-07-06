@@ -49,17 +49,21 @@ type InputValues struct {
 
 	SchedulingConfig   `json:",inline"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	PodSpec            *corev1.PodSpec            `json:"podSpec,omitempty"`
 
 	ExtraManifests []map[string]interface{} `json:"extraManifests,omitempty"`
 
-	Kind        *string                 `json:"kind,omitempty"`
-	StatefulSet *appsv1.StatefulSetSpec `json:"statefulSet,omitempty"`
+	Kind            *string                 `json:"kind,omitempty"`
+	StatefulSetSpec *appsv1.StatefulSetSpec `json:"statefulSetSpec,omitempty"`
+	DeploymentSpec  *appsv1.DeploymentSpec  `json:"deploymentSpec,omitempty"`
 }
 
 type SchedulingConfig struct {
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty" validate:"dive"`
-	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
+	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
+	Tolerations               []corev1.Toleration               `json:"tolerations,omitempty" validate:"dive"`
+	Affinity                  *corev1.Affinity                  `json:"affinity,omitempty"`
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty" validate:"dive"`
+	PriorityClassName         *string                           `json:"priorityClassName,omitempty"`
 }
 
 type Image struct {
@@ -100,6 +104,7 @@ type Container struct {
 	LivenessProbe   *corev1.Probe                `json:"livenessProbe,omitempty"`
 	Lifecycle       *corev1.Lifecycle            `json:"lifecycle,omitempty"`
 	SecurityContext *corev1.SecurityContext      `json:"securityContext,omitempty"`
+	ContainerSpec   *corev1.Container            `json:"containerSpec,omitempty"`
 }
 
 type SecretMapping = map[string]*string

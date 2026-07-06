@@ -33,9 +33,9 @@ func TestMainWorkload(t *testing.T) {
 
 	t.Run("will render a StatefulSet if kind = StatefulSet", func(t *testing.T) {
 		values := DeploymentValues{
-			Metadata:    commonMetadata,
-			Kind:        "StatefulSet",
-			StatefulSet: &appsv1.StatefulSetSpec{},
+			Metadata:        commonMetadata,
+			Kind:            "StatefulSet",
+			StatefulSetSpec: &appsv1.StatefulSetSpec{},
 		}
 
 		shouldCreate, createFn := CreateMainWorkload(values)

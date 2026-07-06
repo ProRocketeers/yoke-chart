@@ -55,15 +55,17 @@ func TestCronjob(t *testing.T) {
 				},
 			}
 		},
-		"accepts Kube CronJobSpec overrides": func() CaseConfig {
+		"accepts Kube CronJobSpec overrides via cronJobSpec": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.Cronjobs[0].Suspend = ptr.To(true)
-					dv.Cronjobs[0].TimeZone = ptr.To("Europe/Prague")
-					dv.Cronjobs[0].ConcurrencyPolicy = ptr.To(batchv1.ForbidConcurrent)
-					dv.Cronjobs[0].StartingDeadlineSeconds = ptr.To(int64(5))
-					dv.Cronjobs[0].SuccessfulJobsHistoryLimit = ptr.To(int32(5))
-					dv.Cronjobs[0].FailedJobsHistoryLimit = ptr.To(int32(2))
+					dv.Cronjobs[0].CronJobSpec = &batchv1.CronJobSpec{
+						Suspend:                    ptr.To(true),
+						TimeZone:                   ptr.To("Europe/Prague"),
+						ConcurrencyPolicy:          batchv1.ForbidConcurrent,
+						StartingDeadlineSeconds:    ptr.To(int64(5)),
+						SuccessfulJobsHistoryLimit: ptr.To(int32(5)),
+						FailedJobsHistoryLimit:     ptr.To(int32(2)),
+					}
 				},
 				Asserts: func(t *testing.T, cj []*batchv1.CronJob) {
 					assert.Equal(t, ptr.To(true), cj[0].Spec.Suspend)
@@ -75,20 +77,30 @@ func TestCronjob(t *testing.T) {
 				},
 			}
 		},
-		"accepts Kube JobSpec overrides": func() CaseConfig {
+		"defaults concurrencyPolicy to Allow, overridable via cronJobSpec": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {},
+				Asserts: func(t *testing.T, cj []*batchv1.CronJob) {
+					assert.Equal(t, batchv1.AllowConcurrent, cj[0].Spec.ConcurrencyPolicy)
+				},
+			}
+		},
+		"accepts Kube JobSpec overrides via jobSpec": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.Cronjobs[0].ActiveDeadlineSeconds = ptr.To(int64(300))
-					dv.Cronjobs[0].BackoffLimit = ptr.To(int32(8))
-					dv.Cronjobs[0].CompletionMode = ptr.To(batchv1.IndexedCompletion)
-					dv.Cronjobs[0].Completions = ptr.To(int32(3))
-					dv.Cronjobs[0].Parallelism = ptr.To(int32(5))
-					dv.Cronjobs[0].Selector = &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"label": "value",
+					dv.Cronjobs[0].JobSpec = &batchv1.JobSpec{
+						ActiveDeadlineSeconds: ptr.To(int64(300)),
+						BackoffLimit:          ptr.To(int32(8)),
+						CompletionMode:        ptr.To(batchv1.IndexedCompletion),
+						Completions:           ptr.To(int32(3)),
+						Parallelism:           ptr.To(int32(5)),
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"label": "value",
+							},
 						},
+						TTLSecondsAfterFinished: ptr.To(int32(20)),
 					}
-					dv.Cronjobs[0].TTLSecondsAfterFinished = ptr.To(int32(20))
 				},
 				Asserts: func(t *testing.T, cj []*batchv1.CronJob) {
 					assert.Equal(t, ptr.To(int64(300)), cj[0].Spec.JobTemplate.Spec.ActiveDeadlineSeconds)
@@ -98,6 +110,18 @@ func TestCronjob(t *testing.T) {
 					assert.Equal(t, ptr.To(int32(5)), cj[0].Spec.JobTemplate.Spec.Parallelism)
 					assert.Equal(t, map[string]string{"label": "value"}, cj[0].Spec.JobTemplate.Spec.Selector.MatchLabels)
 					assert.Equal(t, ptr.To(int32(20)), cj[0].Spec.JobTemplate.Spec.TTLSecondsAfterFinished)
+				},
+			}
+		},
+		"jobSpec/cronJobSpec can override schedule/jobTemplate - no protected fields": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Cronjobs[0].CronJobSpec = &batchv1.CronJobSpec{
+						Schedule: "0 0 * * *",
+					}
+				},
+				Asserts: func(t *testing.T, cj []*batchv1.CronJob) {
+					assert.Equal(t, "0 0 * * *", cj[0].Spec.Schedule)
 				},
 			}
 		},

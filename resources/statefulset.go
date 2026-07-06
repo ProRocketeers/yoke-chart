@@ -5,6 +5,7 @@ import (
 	"maps"
 	"strings"
 
+	"dario.cat/mergo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,24 +57,29 @@ func CreateStatefulSet(values DeploymentValues) (bool, ResourceCreator) {
 				Annotations: values.Annotations,
 				Labels:      withCommonLabels(values.Labels, values.Metadata),
 			},
-			Spec: *values.StatefulSet,
-		}
-		statefulSet.Spec.Selector = &metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app": serviceName(values.Metadata),
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": serviceName(values.Metadata),
+					},
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: podAnnotations,
+						Labels:      withCommonLabels(values.PodLabels, values.Metadata),
+					},
+					Spec: podSpec,
+				},
+				ServiceName: headlessServiceName(values.Metadata),
 			},
 		}
-		statefulSet.Spec.Template = corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: podAnnotations,
-				Labels:      withCommonLabels(values.PodLabels, values.Metadata),
-			},
-			Spec: podSpec,
-		}
-		statefulSet.Spec.ServiceName = headlessServiceName(values.Metadata)
 
 		if values.Autoscaling == nil {
 			statefulSet.Spec.Replicas = ptr.To(int32(values.ReplicaCount))
+		}
+
+		if err := mergo.Merge(&statefulSet.Spec, *values.StatefulSetSpec, mergo.WithOverride); err != nil {
+			return nil, fmt.Errorf("merging raw statefulSet spec: %v", err)
 		}
 
 		u, err := toUnstructured(&statefulSet, &headlessSvc)

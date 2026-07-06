@@ -309,6 +309,42 @@ func TestContainer(t *testing.T) {
 				},
 			}
 		},
+		"containerSpec merges in fields with no dedicated field, like startupProbe/workingDir": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ContainerSpec = &corev1.Container{
+						WorkingDir: "/app",
+						StartupProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Port: intstr.FromInt(8080),
+									Path: "/startup",
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Equal(t, "/app", d.Spec.Template.Spec.Containers[0].WorkingDir)
+					require.NotNil(t, d.Spec.Template.Spec.Containers[0].StartupProbe)
+					assert.Equal(t, "/startup", d.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Path)
+					// chart-derived fields survive untouched since containerSpec didn't set them
+					assert.Equal(t, "image_repository:image_tag", d.Spec.Template.Spec.Containers[0].Image)
+				},
+			}
+		},
+		"containerSpec can override chart-built image - no protected fields": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].ContainerSpec = &corev1.Container{
+						Image: "replaced:latest",
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Equal(t, "replaced:latest", d.Spec.Template.Spec.Containers[0].Image)
+				},
+			}
+		},
 	}
 
 	// instead of unit testing the `createContainer` with a bit more complicated parameters

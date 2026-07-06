@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
@@ -29,7 +30,7 @@ func TestStatefulSet(t *testing.T) {
 						{Port: 8080},
 					}
 					dv.Kind = "StatefulSet"
-					dv.StatefulSet = &appsv1.StatefulSetSpec{}
+					dv.StatefulSetSpec = &appsv1.StatefulSetSpec{}
 				},
 				Asserts: func(t *testing.T, sts *appsv1.StatefulSet, s *corev1.Service) {
 					require.NotEmpty(t, s)
@@ -62,7 +63,7 @@ func TestStatefulSet(t *testing.T) {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
 					dv.Kind = "StatefulSet"
-					dv.StatefulSet = &appsv1.StatefulSetSpec{}
+					dv.StatefulSetSpec = &appsv1.StatefulSetSpec{}
 				},
 				Asserts: func(t *testing.T, sts *appsv1.StatefulSet, s *corev1.Service) {
 					assert.Subset(t, sts.Spec.Selector.MatchLabels, map[string]string{
@@ -75,7 +76,7 @@ func TestStatefulSet(t *testing.T) {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
 					dv.Kind = "StatefulSet"
-					dv.StatefulSet = &appsv1.StatefulSetSpec{
+					dv.StatefulSetSpec = &appsv1.StatefulSetSpec{
 						PodManagementPolicy: appsv1.ParallelPodManagement,
 						Ordinals: &appsv1.StatefulSetOrdinals{
 							Start: 4,
@@ -85,6 +86,23 @@ func TestStatefulSet(t *testing.T) {
 				Asserts: func(t *testing.T, sts *appsv1.StatefulSet, s *corev1.Service) {
 					assert.Equal(t, sts.Spec.PodManagementPolicy, appsv1.ParallelPodManagement)
 					assert.Equal(t, sts.Spec.Ordinals.Start, int32(4))
+				},
+			}
+		},
+		"statefulSetSpec can override selector/serviceName - no protected fields (regression: precedence intentionally flipped)": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Kind = "StatefulSet"
+					dv.StatefulSetSpec = &appsv1.StatefulSetSpec{
+						ServiceName: "replaced-headless",
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "replaced"},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, sts *appsv1.StatefulSet, s *corev1.Service) {
+					assert.Equal(t, "replaced-headless", sts.Spec.ServiceName)
+					assert.Equal(t, "replaced", sts.Spec.Selector.MatchLabels["app"])
 				},
 			}
 		},

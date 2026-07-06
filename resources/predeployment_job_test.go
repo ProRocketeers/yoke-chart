@@ -31,21 +31,23 @@ func TestPreDeploymentJob(t *testing.T) {
 				},
 			}
 		},
-		"accepts Kubernetes JobSpec overrides": func() CaseConfig {
+		"accepts Kubernetes JobSpec overrides via jobSpec": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
-					dv.PreDeploymentJob.JobSpec.ActiveDeadlineSeconds = ptr.To(int64(300))
-					dv.PreDeploymentJob.JobSpec.BackoffLimit = ptr.To(int32(8))
-					dv.PreDeploymentJob.JobSpec.CompletionMode = ptr.To(batchv1.IndexedCompletion)
-					dv.PreDeploymentJob.JobSpec.Completions = ptr.To(int32(3))
-					dv.PreDeploymentJob.JobSpec.Parallelism = ptr.To(int32(5))
-					dv.PreDeploymentJob.JobSpec.Selector = &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"label": "value",
+					dv.PreDeploymentJob.JobSpec = &batchv1.JobSpec{
+						ActiveDeadlineSeconds: ptr.To(int64(300)),
+						BackoffLimit:          ptr.To(int32(8)),
+						CompletionMode:        ptr.To(batchv1.IndexedCompletion),
+						Completions:           ptr.To(int32(3)),
+						Parallelism:           ptr.To(int32(5)),
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"label": "value",
+							},
 						},
+						Suspend:                 ptr.To(false),
+						TTLSecondsAfterFinished: ptr.To(int32(20)),
 					}
-					dv.PreDeploymentJob.JobSpec.Suspend = ptr.To(false)
-					dv.PreDeploymentJob.JobSpec.TTLSecondsAfterFinished = ptr.To(int32(20))
 				},
 				Asserts: func(t *testing.T, j *batchv1.Job) {
 					assert.Equal(t, ptr.To(int64(300)), j.Spec.ActiveDeadlineSeconds)
@@ -56,6 +58,20 @@ func TestPreDeploymentJob(t *testing.T) {
 					assert.Equal(t, map[string]string{"label": "value"}, j.Spec.Selector.MatchLabels)
 					assert.Equal(t, ptr.To(false), j.Spec.Suspend)
 					assert.Equal(t, ptr.To(int32(20)), j.Spec.TTLSecondsAfterFinished)
+				},
+			}
+		},
+		"jobSpec can override template - no protected fields": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.PreDeploymentJob.JobSpec = &batchv1.JobSpec{
+						BackoffLimit: ptr.To(int32(1)),
+					}
+				},
+				Asserts: func(t *testing.T, j *batchv1.Job) {
+					assert.Equal(t, ptr.To(int32(1)), j.Spec.BackoffLimit)
+					// chart-derived fields survive untouched since jobSpec didn't set them
+					assert.NotEmpty(t, j.Spec.Template.Spec.Containers)
 				},
 			}
 		},

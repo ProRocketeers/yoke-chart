@@ -3,7 +3,6 @@ package schema
 import (
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Cronjob struct {
@@ -23,26 +22,14 @@ type Cronjob struct {
 	PodAnnotations     map[string]string      `json:"podAnnotations,omitempty"`
 	PodLabels          map[string]string      `json:"podLabels,omitempty"`
 	PodSecurityContext *v1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	PodSpec            *v1.PodSpec            `json:"podSpec,omitempty"`
 
-	SchedulingConfig        `json:",inline"`
-	CronJobAdditionalFields `json:",inline"`
-}
+	SchedulingConfig `json:",inline"`
 
-type CronJobAdditionalFields struct {
-	// some CronJobSpec fields
-	Suspend                    *bool                      `json:"suspend,omitempty"`
-	TimeZone                   *string                    `json:"timeZone,omitempty"`
-	ConcurrencyPolicy          *batchv1.ConcurrencyPolicy `json:"concurrencyPolicy,omitempty"`
-	StartingDeadlineSeconds    *int64                     `json:"startingDeadlineSeconds,omitempty"`
-	SuccessfulJobsHistoryLimit *int32                     `json:"successfulJobsHistoryLimit,omitempty"`
-	FailedJobsHistoryLimit     *int32                     `json:"failedJobsHistoryLimit,omitempty"`
-	// and some JobSpec fields
-	ActiveDeadlineSeconds   *int64                    `json:"activeDeadlineSeconds,omitempty"`
-	BackoffLimit            *int32                    `json:"backoffLimit,omitempty"`
-	CompletionMode          *batchv1.CompletionMode   `json:"completionMode,omitempty"`
-	Completions             *int32                    `json:"completions,omitempty"`
-	Parallelism             *int32                    `json:"parallelism,omitempty"`
-	PodFailurePolicy        *batchv1.PodFailurePolicy `json:"podFailurePolicy,omitempty"`
-	Selector                *metav1.LabelSelector     `json:"selector,omitempty"`
-	TTLSecondsAfterFinished *int32                    `json:"ttlSecondsAfterFinished,omitempty"`
+	// OPTIONAL - full `CronJobSpec`/`JobSpec` as specified by Kubernetes, split in two since they
+	// both have a `suspend` field. The Flight builds `schedule`/`jobTemplate`/`template` itself, then
+	// layers these on top - so anything you set here (including those) wins if you explicitly set it,
+	// otherwise the built value is kept
+	CronJobSpec *batchv1.CronJobSpec `json:"cronJobSpec,omitempty"`
+	JobSpec     *batchv1.JobSpec     `json:"jobSpec,omitempty"`
 }

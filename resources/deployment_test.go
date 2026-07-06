@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -601,6 +602,38 @@ func TestDeployment(t *testing.T) {
 				ValuesTransform: func(dv *DeploymentValues) {},
 				Asserts: func(t *testing.T, d *appsv1.Deployment) {
 					assert.Equal(t, "service--component--test", d.Spec.Template.Spec.ServiceAccountName)
+				},
+			}
+		},
+		"deploymentSpec merges in fields with no dedicated field, like minReadySeconds": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.DeploymentSpec = &appsv1.DeploymentSpec{
+						MinReadySeconds:      10,
+						RevisionHistoryLimit: ptr.To(int32(3)),
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Equal(t, int32(10), d.Spec.MinReadySeconds)
+					assert.Equal(t, ptr.To(int32(3)), d.Spec.RevisionHistoryLimit)
+					// chart-derived fields survive untouched since deploymentSpec didn't set them
+					assert.Equal(t, "service--component--test", d.Spec.Selector.MatchLabels["app"])
+				},
+			}
+		},
+		"deploymentSpec can override selector/replicas - no protected fields": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.DeploymentSpec = &appsv1.DeploymentSpec{
+						Replicas: ptr.To(int32(7)),
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "replaced"},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Equal(t, ptr.To(int32(7)), d.Spec.Replicas)
+					assert.Equal(t, "replaced", d.Spec.Selector.MatchLabels["app"])
 				},
 			}
 		},

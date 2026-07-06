@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 
+	"dario.cat/mergo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +57,13 @@ func CreateDeployment(values DeploymentValues) (bool, ResourceCreator) {
 		if values.Strategy != nil {
 			deployment.Spec.Strategy = *values.Strategy
 		}
+
+		if values.DeploymentSpec != nil {
+			if err := mergo.Merge(&deployment.Spec, *values.DeploymentSpec, mergo.WithOverride); err != nil {
+				return nil, fmt.Errorf("merging raw deploymentSpec: %v", err)
+			}
+		}
+
 		u, err := toUnstructured(&deployment)
 		if err != nil {
 			return nil, err
