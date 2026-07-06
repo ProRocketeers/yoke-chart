@@ -59,7 +59,7 @@ ports:
 #
 # `containerSpec` - escape hatch: full Kubernetes `Container` spec for the main container. OPTIONAL
 # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
-# useful for fields with no dedicated value, like `workingDir` or `startupProbe`.
+# useful for fields with no dedicated value, like `workingDir` or `stdin`/`tty`.
 # also available on `sidecars.<name>`, `initContainers[]`, `preDeploymentJob` and `cronjobs[]` (each scoped
 # to that container)
 containerSpec: {}
@@ -203,6 +203,27 @@ livenessProbe:
   timeoutSeconds: 0
   failureThreshold: 0
   successThreshold: 0
+# `startupProbe` - configures the Container's startup probe as described by Kubernetes. OPTIONAL
+# useful for slow-starting containers - readiness/liveness probes only start once this succeeds
+startupProbe:
+  exec:
+    command:
+      - ''
+  httpGet:
+    port: 0
+    host: ''
+    httpHeaders:
+      - name: ''
+        value: ''
+    path: ''
+    scheme: ''
+  tcpSocket:
+    port: 0
+    host: ''
+  initialDelaySeconds: 0
+  periodSeconds: 0
+  timeoutSeconds: 0
+  failureThreshold: 0
 # `lifecycle` - configures Container's lifecycle properties as described by Kubernetes. OPTIONAL
 lifecycle:
   postStart:

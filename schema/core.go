@@ -101,6 +101,7 @@ type Container struct {
 	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
 	ReadinessProbe  *corev1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe   *corev1.Probe                `json:"livenessProbe,omitempty"`
+	StartupProbe    *corev1.Probe                `json:"startupProbe,omitempty"`
 	Lifecycle       *corev1.Lifecycle            `json:"lifecycle,omitempty"`
 	ContainerSpec   *corev1.Container            `json:"containerSpec,omitempty"`
 }

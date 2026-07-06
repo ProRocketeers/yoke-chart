@@ -270,6 +270,35 @@ func TestContainer(t *testing.T) {
 				},
 			}
 		},
+		"renders startupProbe": func() CaseConfig {
+			probe := corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Port: intstr.FromInt(80),
+						Host: "/",
+						Path: "/pong",
+					},
+				},
+				InitialDelaySeconds: int32(5),
+				PeriodSeconds:       int32(10),
+				TimeoutSeconds:      int32(5),
+				FailureThreshold:    int32(30),
+			}
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Containers[0].StartupProbe = &probe
+				},
+				Asserts: func(t *testing.T, d *appsv1.Deployment) {
+					assert.Equal(t, probe.HTTPGet.Port, d.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port)
+					assert.Equal(t, probe.HTTPGet.Host, d.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Host)
+					assert.Equal(t, probe.HTTPGet.Path, d.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Path)
+					assert.Equal(t, probe.InitialDelaySeconds, d.Spec.Template.Spec.Containers[0].StartupProbe.InitialDelaySeconds)
+					assert.Equal(t, probe.PeriodSeconds, d.Spec.Template.Spec.Containers[0].StartupProbe.PeriodSeconds)
+					assert.Equal(t, probe.TimeoutSeconds, d.Spec.Template.Spec.Containers[0].StartupProbe.TimeoutSeconds)
+					assert.Equal(t, probe.FailureThreshold, d.Spec.Template.Spec.Containers[0].StartupProbe.FailureThreshold)
+				},
+			}
+		},
 		"doesn't render volume mount if it's NOT mounted in the container": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
@@ -309,25 +338,15 @@ func TestContainer(t *testing.T) {
 				},
 			}
 		},
-		"containerSpec merges in fields with no dedicated field, like startupProbe/workingDir": func() CaseConfig {
+		"containerSpec merges in fields with no dedicated field, like workingDir": func() CaseConfig {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
 					dv.Containers[0].ContainerSpec = &corev1.Container{
 						WorkingDir: "/app",
-						StartupProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								HTTPGet: &corev1.HTTPGetAction{
-									Port: intstr.FromInt(8080),
-									Path: "/startup",
-								},
-							},
-						},
 					}
 				},
 				Asserts: func(t *testing.T, d *appsv1.Deployment) {
 					assert.Equal(t, "/app", d.Spec.Template.Spec.Containers[0].WorkingDir)
-					require.NotNil(t, d.Spec.Template.Spec.Containers[0].StartupProbe)
-					assert.Equal(t, "/startup", d.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Path)
 					// chart-derived fields survive untouched since containerSpec didn't set them
 					assert.Equal(t, "image_repository:image_tag", d.Spec.Template.Spec.Containers[0].Image)
 				},

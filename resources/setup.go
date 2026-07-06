@@ -273,6 +273,7 @@ func convertContainer(container schema.Container, names ...*string) Container {
 		Resources:       container.Resources,
 		ReadinessProbe:  container.ReadinessProbe,
 		LivenessProbe:   container.LivenessProbe,
+		StartupProbe:    container.StartupProbe,
 		Lifecycle:       container.Lifecycle,
 		ContainerSpec:   container.ContainerSpec,
 	}

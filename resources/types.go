@@ -76,6 +76,7 @@ type Container struct {
 	Resources       *corev1.ResourceRequirements
 	ReadinessProbe  *corev1.Probe
 	LivenessProbe   *corev1.Probe
+	StartupProbe    *corev1.Probe
 	Lifecycle       *corev1.Lifecycle
 	ContainerSpec   *corev1.Container
 }
