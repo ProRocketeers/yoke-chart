@@ -27,7 +27,7 @@ func CreateHPA(values DeploymentValues) (bool, ResourceCreator) {
 			Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 					APIVersion: appsv1.SchemeGroupVersion.Identifier(),
-					Kind:       "Deployment",
+					Kind:       values.Kind,
 					Name:       serviceName(values.Metadata),
 				},
 				MinReplicas: a.MinReplicas,
