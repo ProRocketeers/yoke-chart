@@ -105,6 +105,11 @@ type PersistentVolumeNew struct {
 	Size             string                          `json:"size,omitempty"  validate:"required"`
 	StorageClassName string                          `json:"storageClassName,omitempty"  validate:"required"`
 	VolumeMode       *v1.PersistentVolumeMode        `json:"volumeMode,omitempty"`
+
+	// OPTIONAL - provision the PVC from an existing PVC (clone) or a VolumeSnapshot. Neither is
+	// derived from the other - set whichever (or both) your CSI driver/webhook expects.
+	DataSource    *v1.TypedLocalObjectReference `json:"dataSource,omitempty"`
+	DataSourceRef *v1.TypedObjectReference      `json:"dataSourceRef,omitempty"`
 }
 
 func (PersistentVolumeNew) IsPersistentVolumeVariant() {}

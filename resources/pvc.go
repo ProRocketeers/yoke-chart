@@ -46,6 +46,12 @@ func CreatePVCs(values DeploymentValues) (bool, ResourceCreator) {
 			if v.VolumeMode != nil {
 				pvc.Spec.VolumeMode = v.VolumeMode
 			}
+			if v.DataSource != nil {
+				pvc.Spec.DataSource = v.DataSource
+			}
+			if v.DataSourceRef != nil {
+				pvc.Spec.DataSourceRef = v.DataSourceRef
+			}
 
 			u, err := toUnstructured(&pvc)
 			if err != nil {

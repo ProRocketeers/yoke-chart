@@ -6,6 +6,7 @@ import (
 	"github.com/ProRocketeers/yoke-chart/schema"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
@@ -100,6 +101,111 @@ func TestPVC(t *testing.T) {
 				},
 				Asserts: func(t *testing.T, pvc *corev1.PersistentVolumeClaim) {
 					assert.Equal(t, ptr.To(corev1.PersistentVolumeBlock), pvc.Spec.VolumeMode)
+				},
+			}
+		},
+		"can set dataSource": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Volumes = map[string]schema.Volume{
+						"pvc": {
+							Type: schema.VolumeTypePersistent,
+							Mounts: map[string]schema.VolumeMountList{
+								"main": {
+									{ContainerPath: "/pvc"},
+								},
+							},
+							Variant: schema.PersistentVolume{
+								Existing: ptr.To(false),
+								Variant: schema.PersistentVolumeNew{
+									StorageClassName: "my-sc",
+									Size:             "5Gi",
+									DataSource: &corev1.TypedLocalObjectReference{
+										APIGroup: ptr.To("snapshot.storage.k8s.io"),
+										Kind:     "VolumeSnapshot",
+										Name:     "my-snapshot",
+									},
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, pvc *corev1.PersistentVolumeClaim) {
+					require.NotNil(t, pvc.Spec.DataSource)
+					assert.Equal(t, "VolumeSnapshot", pvc.Spec.DataSource.Kind)
+					assert.Equal(t, "my-snapshot", pvc.Spec.DataSource.Name)
+					assert.Nil(t, pvc.Spec.DataSourceRef)
+				},
+			}
+		},
+		"can set dataSourceRef": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Volumes = map[string]schema.Volume{
+						"pvc": {
+							Type: schema.VolumeTypePersistent,
+							Mounts: map[string]schema.VolumeMountList{
+								"main": {
+									{ContainerPath: "/pvc"},
+								},
+							},
+							Variant: schema.PersistentVolume{
+								Existing: ptr.To(false),
+								Variant: schema.PersistentVolumeNew{
+									StorageClassName: "my-sc",
+									Size:             "5Gi",
+									DataSourceRef: &corev1.TypedObjectReference{
+										APIGroup: ptr.To(""),
+										Kind:     "PersistentVolumeClaim",
+										Name:     "my-source-pvc",
+									},
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, pvc *corev1.PersistentVolumeClaim) {
+					require.NotNil(t, pvc.Spec.DataSourceRef)
+					assert.Equal(t, "PersistentVolumeClaim", pvc.Spec.DataSourceRef.Kind)
+					assert.Equal(t, "my-source-pvc", pvc.Spec.DataSourceRef.Name)
+					assert.Nil(t, pvc.Spec.DataSource)
+				},
+			}
+		},
+		"can set both dataSource and dataSourceRef independently": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(dv *DeploymentValues) {
+					dv.Volumes = map[string]schema.Volume{
+						"pvc": {
+							Type: schema.VolumeTypePersistent,
+							Mounts: map[string]schema.VolumeMountList{
+								"main": {
+									{ContainerPath: "/pvc"},
+								},
+							},
+							Variant: schema.PersistentVolume{
+								Existing: ptr.To(false),
+								Variant: schema.PersistentVolumeNew{
+									StorageClassName: "my-sc",
+									Size:             "5Gi",
+									DataSource: &corev1.TypedLocalObjectReference{
+										Kind: "PersistentVolumeClaim",
+										Name: "my-source-pvc",
+									},
+									DataSourceRef: &corev1.TypedObjectReference{
+										Kind: "PersistentVolumeClaim",
+										Name: "my-source-pvc",
+									},
+								},
+							},
+						},
+					}
+				},
+				Asserts: func(t *testing.T, pvc *corev1.PersistentVolumeClaim) {
+					require.NotNil(t, pvc.Spec.DataSource)
+					require.NotNil(t, pvc.Spec.DataSourceRef)
+					assert.Equal(t, "my-source-pvc", pvc.Spec.DataSource.Name)
+					assert.Equal(t, "my-source-pvc", pvc.Spec.DataSourceRef.Name)
 				},
 			}
 		},
