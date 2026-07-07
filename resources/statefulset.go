@@ -78,8 +78,10 @@ func CreateStatefulSet(values DeploymentValues) (bool, ResourceCreator) {
 			statefulSet.Spec.Replicas = ptr.To(int32(values.ReplicaCount))
 		}
 
-		if err := mergo.Merge(&statefulSet.Spec, *values.StatefulSetSpec, mergo.WithOverride); err != nil {
-			return nil, fmt.Errorf("merging raw statefulSet spec: %v", err)
+		if values.StatefulSetSpec != nil {
+			if err := mergo.Merge(&statefulSet.Spec, *values.StatefulSetSpec, mergo.WithOverride); err != nil {
+				return nil, fmt.Errorf("merging raw statefulSet spec: %v", err)
+			}
 		}
 
 		u, err := toUnstructured(&statefulSet, &headlessSvc)

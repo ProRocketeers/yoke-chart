@@ -30,7 +30,6 @@ func TestStatefulSet(t *testing.T) {
 						{Port: 8080},
 					}
 					dv.Kind = "StatefulSet"
-					dv.StatefulSetSpec = &appsv1.StatefulSetSpec{}
 				},
 				Asserts: func(t *testing.T, sts *appsv1.StatefulSet, s *corev1.Service) {
 					require.NotEmpty(t, s)
@@ -63,7 +62,6 @@ func TestStatefulSet(t *testing.T) {
 			return CaseConfig{
 				ValuesTransform: func(dv *DeploymentValues) {
 					dv.Kind = "StatefulSet"
-					dv.StatefulSetSpec = &appsv1.StatefulSetSpec{}
 				},
 				Asserts: func(t *testing.T, sts *appsv1.StatefulSet, s *corev1.Service) {
 					assert.Subset(t, sts.Spec.Selector.MatchLabels, map[string]string{

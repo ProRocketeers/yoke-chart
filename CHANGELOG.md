@@ -14,6 +14,11 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.11.1] - 2026-07-07
+
+### :hammer_and_wrench: Fixed
+- fixed a crash when `kind: StatefulSet` but not specifying any `statefulSetSpec`
+
 ## [1.11.0] - 2026-07-06
 
 ### :boom: BREAKING CHANGES
@@ -369,7 +374,8 @@ extraManifests:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.0...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.1...HEAD
+[1.11.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.0...1.11.1
 [1.11.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.9.0...1.10.0
 [1.9.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.8.2...1.9.0
