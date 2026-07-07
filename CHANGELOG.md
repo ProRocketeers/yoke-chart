@@ -27,6 +27,7 @@ For clarity we use following emoji for the changes:
     | `preDeploymentJob.suspend` (distinct field from `CronJobSpec.Suspend` above)                                                                                    | `preDeploymentJob.jobSpec.suspend`                      |
 
   - in addition to these fields, some new fields were "added" (more specifically, just exposed) - e.g. `JobSpec.(successPolicy|podReplacementPolicy|...)`
+  - :warning: `cronjobs[].schedule` **still stays as a standalone property and is required!**
 - `statefulSet` property (used for specifying additional `StatefulSet` properties) is now **renamed** to `statefulSetSpec` (to align with other override fields)
   - also, the behavior changed - previously it was taken to be the "source", while the chart overridden `selector`, `template`, `serviceName` and `replicas` (to ensure correctness)
   - now, again in unity with other override fields, this property is taken to be a full override over the opinionated defaults
