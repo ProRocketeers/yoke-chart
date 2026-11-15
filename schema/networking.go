@@ -14,6 +14,8 @@ type Ingress struct {
 }
 
 type HTTPRoute struct {
+	// only read on the legacy singular `httpRoute`, where `enabled: false` used to turn the route off
+	Enabled     *bool             `json:"enabled,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 

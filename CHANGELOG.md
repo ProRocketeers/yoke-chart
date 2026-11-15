@@ -14,6 +14,13 @@ For clarity we use following emoji for the changes:
 
 ## [unreleased]
 
+## [1.11.2] - 2026-11-15
+
+### :hammer_and_wrench: Fixed
+- legacy `httpRoute` with `enabled: false` no longer renders an HTTPRoute
+  - since **1.8.2** the `httpRoute` -> `httpRoutes.main` adapter silently dropped `enabled`, so values written for **<1.8** with `enabled: false` rendered a route anyway
+  - `enabled` is only read on the singular `httpRoute`, `httpRoutes.*` entries are still created whenever specified
+
 ## [1.11.1] - 2026-07-07
 
 ### :hammer_and_wrench: Fixed
@@ -374,7 +381,8 @@ extraManifests:
 
 ### :star: Moved the project to public GitHub repository! :rocket:
 
-[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.1...HEAD
+[unreleased]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.2...HEAD
+[1.11.2]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.1...1.11.2
 [1.11.1]: https://github.com/ProRocketeers/yoke-chart/compare/1.11.0...1.11.1
 [1.11.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/ProRocketeers/yoke-chart/compare/1.9.0...1.10.0
