@@ -451,6 +451,20 @@ func TestSetup(t *testing.T) {
 				},
 			}
 		},
+		"httpRoute (singular) with enabled: false creates no route": func() CaseConfig {
+			return CaseConfig{
+				ValuesTransform: func(iv *schema.InputValues) {
+					iv.HTTPRoute = &schema.HTTPRoute{
+						Enabled:       ptr.To(false),
+						HTTPRouteSpec: gatewayv1.HTTPRouteSpec{Hostnames: []gatewayv1.Hostname{"myapp.example.com"}},
+					}
+				},
+				Asserts: func(t *testing.T, dv DeploymentValues, err error) {
+					require.Nil(t, err)
+					assert.Empty(t, dv.HTTPRoutes)
+				},
+			}
+		},
 		"httpRoutes (plural) is passed through directly": func() CaseConfig {
 			backendRef := gatewayv1.HTTPBackendRef{BackendRef: gatewayv1.BackendRef{
 				BackendObjectReference: gatewayv1.BackendObjectReference{

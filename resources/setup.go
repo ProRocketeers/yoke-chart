@@ -110,6 +110,9 @@ func PrepareDeploymentValues(input schema.InputValues) (DeploymentValues, error)
 func resolveHttpRoutes(input schema.InputValues) map[string]schema.HTTPRoute {
 	// validated to be mutually exclusive
 	if input.HTTPRoute != nil {
+		if input.HTTPRoute.Enabled != nil && !*input.HTTPRoute.Enabled {
+			return nil
+		}
 		return map[string]schema.HTTPRoute{
 			"main": *input.HTTPRoute,
 		}

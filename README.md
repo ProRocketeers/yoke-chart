@@ -57,7 +57,7 @@ spec:
       name: yokecd
       parameters:
         - name: wasm
-          string: oci://ghcr.io/prorocketeers/yoke-chart:1.11.1
+          string: oci://ghcr.io/prorocketeers/yoke-chart:1.11.2
         - name: inputFiles
           # relative to the `source.path`
           array:
