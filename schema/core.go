@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	es "github.com/ProRocketeers/yoke-chart/externalsecrets/v1"
 	yaml "github.com/goccy/go-yaml"
 )
 

@@ -3,8 +3,8 @@ package resources
 import (
 	"testing"
 
+	es "github.com/ProRocketeers/yoke-chart/externalsecrets/v1"
 	"github.com/ProRocketeers/yoke-chart/schema"
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"

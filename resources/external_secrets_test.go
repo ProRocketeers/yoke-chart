@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
+	es "github.com/ProRocketeers/yoke-chart/externalsecrets/v1"
 	"github.com/ProRocketeers/yoke-chart/schema"
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
